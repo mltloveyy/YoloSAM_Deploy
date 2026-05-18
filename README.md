@@ -5,15 +5,15 @@
 ### 环境配置
 
 - conda
-- python==3.12
-- torch==2.11.0+cu128
-- torchvision==0.26.0+cu128
-- ultralytics==8.4.47
-- onnx==1.21.0
-- onnxruntime==1.26.0
-- onnxslim==0.1.93
-- mnn==3.5.0
-- aliyun-log-python-sdk==0.9.46
+- python~=3.12
+- torch==2.11.0  # --index-url https://download.pytorch.org/whl/cpu
+- torchvision==0.26.0
+- ultralytics~=8.4
+- onnx
+- onnxruntime
+- onnxslim
+- mnn~=3.5
+- aliyun-log-python-sdk
 - beautifulsoup4
 - pypinyin
 
