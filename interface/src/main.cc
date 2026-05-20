@@ -1,9 +1,7 @@
 #include <filesystem>
 #include <iostream>
-#include <vector>
 
-#include "inference.h"
-#include "result.h"
+#include "detector.h"
 
 namespace fs = std::filesystem;
 
@@ -17,23 +15,23 @@ int main(int argc, char* argv[]) {
   std::string input_path = argv[2];
   std::string config_path = argv[3];
 
-  YoloInference infer(model_path);
+  Detector detector(model_path);
   ResultProcessor processor(config_path);
 
   if (fs::is_directory(input_path)) {
-    auto dir_results = infer.run_inference_on_directory(input_path);
-    for (const auto& [filename, detections] : dir_results) {
-      std::string output_img_path = input_path + "/results_" + filename;
-      std::string output_json_path = input_path + "/" + fs::path(filename).replace_extension(".json").string();
-      processor.draw_and_save_image(input_path + "/" + filename, detections, output_img_path);
-      processor.save_labelme_json(input_path + "/" + filename, detections, output_json_path);
+    auto results = detector.run_directory(input_path);
+    for (const auto& [filename, detections] : results) {
+      std::string full_path = input_path + "/" + filename;
+      processor.draw_and_save_image(full_path, detections, input_path + "/results_" + filename);
+      processor.save_labelme_json(full_path, detections,
+                                  input_path + "/" + fs::path(filename).replace_extension(".json").string());
+      std::cout << ">>> " << full_path << std::endl;
     }
   } else {
-    auto detections = infer.run_inference(input_path);
-    std::string output_img_path = "annotated_" + fs::path(input_path).filename().string();
-    std::string output_json_path = fs::path(input_path).replace_extension(".json").string();
-    processor.draw_and_save_image(input_path, detections, output_img_path);
-    processor.save_labelme_json(input_path, detections, output_json_path);
+    auto detections = detector.run(input_path);
+    processor.draw_and_save_image(input_path, detections, "results_" + fs::path(input_path).filename().string());
+    processor.save_labelme_json(input_path, detections, fs::path(input_path).replace_extension(".json").string());
+    std::cout << ">>> " << input_path << std::endl;
   }
 
   return 0;

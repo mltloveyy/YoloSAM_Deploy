@@ -1,6 +1,6 @@
 # Railway_Tools_Detection
 
-## 训练
+## Python训练与推理
 
 ### 环境配置
 
@@ -37,51 +37,130 @@ python 04_mnn_inference.py --model models/yolo26x.mnn --input data/test --config
 
 ```
 
-## 推理
+## C++推理
 
 ### x86
 
-#### MNN编译
+#### 依赖库
 
-1. 下载[MNN](https://github.com/alibaba/MNN)源码, 解压到`project_root`
-   
-2. 编译动态库
+##### MNN
 
 ```bash
-cd /project_root/MNN
-mkdir build && cd build && cmake -DMNN_IMGCODECS=ON -DMNN_BUILD_OPENCV=ON .. && make -j8
+# 编译
+cd 3rd_party/MNN
+mkdir build && cd build
+cmake .. -DMNN_BUILD_OPENCV=ON -DMNN_IMGCODECS=ON -DCMAKE_BUILD_TYPE=Release && make -j8
+
+# 复制动态库到依赖库目录
+find . -name "*.so" -exec cp -t ../../../interface/lib/x86 {} +
 ```
 
-3. 复制MNN动态库到项目目录
+##### yaml-cpp & jsoncpp
 
 ```bash
-find . -name "*.so" -exec cp -t ../../interface/lib {} +
+sudo apt install libyaml-cpp-dev libjsoncpp-dev
 ```
 
-#### 项目编译
-
-1. 安装`yaml-cpp`和`jsoncpp
+#### 编译
 
 ```bash
-sudo apt install libjsoncpp-dev libyaml-cpp-dev
+cd interface
+mkdir build && cd build
+cmake .. -DCMAKE_BUILD_TYPE=Release && make -j8
 ```
 
-2. (首次)复制MNN头文件到项目目录
+#### 运行Demo
 
-```bash
-cp -r MNN/include/* interface/include
-cp -r MNN/tools/cv/include/* interface/include/MNN
-```
-
-3. 编译项目
-
-```bash
-cd /project_root/interface
-mkdir build && cd build && cmake .. && make -j8
-```
-
-#### 运行
+cmake添加`-DBUILD_DEMO=ON`选项重新构建编译
 
 ```bash
 ./MNN_YOLO models/yolo26x.mnn data/test data/config.yaml
 ```
+
+### Android
+
+#### 依赖库
+
+##### MNN
+
+1. 下载[NDK](https://developer.android.google.cn/ndk/downloads?hl=zh-cn), 解压到`/path/to/android-ndk`
+
+2. 在`.bashrc`或者`.bash_profile`中设置NDK环境变量，例如：`export ANDROID_NDK=/path/to/android-ndk`
+   
+3. 编译
+
+```bash
+cd 3rd_party/MNN
+mkdir build_android && cd build_android
+cmake .. -DMNN_BUILD_OPENCV=ON \
+  -DMNN_IMGCODECS=ON \
+  -DCMAKE_BUILD_TYPE=Release \
+  -DCMAKE_TOOLCHAIN_FILE=$ANDROID_NDK/build/cmake/android.toolchain.cmake \
+  -DANDROID_ABI="arm64-v8a" \
+  -DANDROID_STL=c++_shared \
+  -DANDROID_NATIVE_API_LEVEL=android-21 \
+  -DMNN_BUILD_FOR_ANDROID_COMMAND=ON \
+  -DMNN_USE_SSE=OFF \
+  -DMNN_USE_LOGCAT=OFF
+make -j8
+```
+
+4. 复制动态库到依赖库目录
+
+```bash
+find . -name "*.so" -exec cp -t ../../../interface/lib/android {} +
+```
+
+##### yaml-cpp
+
+```bash
+cd 3rd_party/yaml-cpp
+mkdir build_android && cd build_android
+cmake .. -DYAML_BUILD_SHARED_LIBS=ON \
+  -DCMAKE_BUILD_TYPE=Release \
+  -DCMAKE_TOOLCHAIN_FILE=$ANDROID_NDK/build/cmake/android.toolchain.cmake \
+  -DANDROID_ABI="arm64-v8a" \
+  -DANDROID_STL=c++_shared \
+  -DANDROID_NATIVE_API_LEVEL=android-21
+make -j8
+
+# 复制动态库到依赖库目录
+cp libyaml-cpp.so ../../../interface/lib/android
+```
+
+##### jsoncpp
+
+```bash
+cd 3rd_party/jsoncpp
+mkdir build_android && cd build_android
+cmake .. -DJSONCPP_WITH_TESTS=OFF \
+  -DBUILD_STATIC_LIBS=OFF \
+  -DBUILD_OBJECT_LIBS=OFF \
+  -DCMAKE_BUILD_TYPE=Release \
+  -DCMAKE_TOOLCHAIN_FILE=$ANDROID_NDK/build/cmake/android.toolchain.cmake \
+  -DANDROID_ABI="arm64-v8a" \
+  -DANDROID_STL=c++_shared \
+  -DANDROID_NATIVE_API_LEVEL=android-21
+make -j8
+
+# 复制动态库到依赖库目录
+cp lib/libjsoncpp.so ../../../interface/lib/android
+```
+
+#### 编译
+
+```bash
+cd interface
+mkdir build_android && cd build_android
+cmake .. -DBUILD_FOR_ANDROID=ON \
+  -DCMAKE_BUILD_TYPE=Release \
+  -DCMAKE_TOOLCHAIN_FILE=$ANDROID_NDK/build/cmake/android.toolchain.cmake \
+  -DANDROID_ABI="arm64-v8a" \
+  -DANDROID_STL=c++_shared \
+  -DANDROID_NATIVE_API_LEVEL=android-21
+make -j8
+```
+
+#### 运行Demo
+
+1. cmake添加-DBUILD_DEMO=ON选项重新构建编译
