@@ -1,6 +1,7 @@
 .venv/
 datasets
 build*
+bin
 *.pt
 *.onnx
 *.mnn

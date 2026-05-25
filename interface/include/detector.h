@@ -13,15 +13,17 @@
 struct DetectionResult {
   float x0, y0, x1, y1;
   int class_id;
+  std::string class_name;
   float confidence;
 };
 
 // ---------------------------------------------------------------------------
-// Detector — MNN inference engine. All MNN headers stay in .cc.
+// Detector — MNN inference engine.
 // ---------------------------------------------------------------------------
 class INTERFACE_API Detector {
  public:
-  Detector(const std::string& model_path, int forward_type = 0, int precision_mode = 0, int num_threads = 1);
+  Detector(const std::string& model_path, const std::map<int, std::string>& class_names, int forward_type = 0,
+           int precision_mode = 0, int num_threads = 1, bool warmup = true);
   ~Detector();
 
   Detector(const Detector&) = delete;
@@ -30,32 +32,6 @@ class INTERFACE_API Detector {
   Detector& operator=(Detector&&) noexcept;
 
   std::vector<DetectionResult> run(const std::string& image_path);
-  std::map<std::string, std::vector<DetectionResult>> run_directory(const std::string& input_dir);
-
- private:
-  struct Impl;
-  std::unique_ptr<Impl> pimpl_;
-};
-
-// ---------------------------------------------------------------------------
-// ResultProcessor — annotates images and writes LabelMe JSON.
-// yaml-cpp / jsoncpp are implementation details.
-// ---------------------------------------------------------------------------
-class INTERFACE_API ResultProcessor {
- public:
-  explicit ResultProcessor(const std::string& config_path);
-  ~ResultProcessor();
-
-  ResultProcessor(const ResultProcessor&) = delete;
-  ResultProcessor& operator=(const ResultProcessor&) = delete;
-  ResultProcessor(ResultProcessor&&) noexcept;
-  ResultProcessor& operator=(ResultProcessor&&) noexcept;
-
-  void draw_and_save_image(const std::string& image_path, const std::vector<DetectionResult>& detections,
-                           const std::string& output_path);
-
-  void save_labelme_json(const std::string& image_path, const std::vector<DetectionResult>& detections,
-                         const std::string& json_output_path);
 
  private:
   struct Impl;

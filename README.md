@@ -71,10 +71,10 @@ cmake .. -DCMAKE_BUILD_TYPE=Release && make -j8
 
 #### 运行Demo
 
-cmake添加`-DBUILD_DEMO=ON`选项重新构建编译，得到可执行文件`MNN_YOLO`
+cmake添加`-DBUILD_DEMO=ON`选项重新构建编译，得到可执行文件`MNN_YOLO`，生成目录在`interface/bin/x86`下
 
 ```bash
-./MNN_YOLO models/yolo26x.mnn data/test data/config.yaml
+./MNN_YOLO models/yolo26x.mnn data/test.jpg data/config.yaml
 ```
 
 ### Android
@@ -163,7 +163,7 @@ make -j8
 
 #### 运行Demo
 
-1. cmake添加`-DBUILD_DEMO=ON`选项重新构建编译，得到可执行文件`MNN_YOLO`
+1. cmake添加`-DBUILD_DEMO=ON`选项重新构建编译，得到可执行文件`MNN_YOLO`，生成目录在`interface/bin/android`下
 
 2. 在Win系统上下载并安装[雷电模拟器](https://www.ldmnq.com/)
 
@@ -173,41 +173,38 @@ make -j8
 
 5. 推送文件到模拟器
    
-   ```powershell
-   # 列出已连接设备
-   C:\leidian\LDPlayer14\adb.exe devices
-   # List of devices attached
-   # emulator-5554   device
-   
-   # 复制Demo文件到模拟器/data/local/tmp/目录下
-   C:\leidian\LDPlayer14\adb.exe push interface\build_android\MNN_YOLO /data/local/tmp/
-   Get-ChildItem "interface\build_android\*.so" | ForEach-Object { C:\leidian\LDPlayer14\adb.exe push $_.FullName /data/local/tmp/ }
-   C:\leidian\LDPlayer14\adb.exe push ${android-ndk}\toolchains\llvm\prebuilt\linux-x86_64\sysroot\usr\lib\aarch64-linux-android\libc++_shared.so /data/local/tmp/
-   
-   # 复制模型、配置文件和测试图片到模拟器/data/local/tmp/目录下
-   C:\leidian\LDPlayer14\adb.exe push runs\detect\20260513\yolo26x_best.mnn /data/local/tmp/
-   C:\leidian\LDPlayer14\adb.exe push data\config.yaml /data/local/tmp/
-   C:\leidian\LDPlayer14\adb.exe push data\test.jpg /data/local/tmp/
-   ```
+```powershell
+# 列出已连接设备
+C:\leidian\LDPlayer14\adb.exe devices
+# List of devices attached
+# emulator-5554   device
+
+# 复制Demo文件到模拟器/data/local/tmp/目录下
+C:\leidian\LDPlayer14\adb.exe push interface\bin\android\* /data/local/tmp/
+C:\leidian\LDPlayer14\adb.exe push ${/path/to/android-ndk}\toolchains\llvm\prebuilt\linux-x86_64\sysroot\usr\lib\aarch64-linux-android\libc++_shared.so /data/local/tmp/
+
+# 复制模型、配置文件和测试图片到模拟器/data/local/tmp/目录下
+C:\leidian\LDPlayer14\adb.exe push runs\detect\20260513\yolo26x_best.mnn /data/local/tmp/
+C:\leidian\LDPlayer14\adb.exe push data\config.yaml /data/local/tmp/
+C:\leidian\LDPlayer14\adb.exe push data\test.jpg /data/local/tmp/
+```
 
 6. 运行Demo
    
-   ```bash
-   # 进入模拟器
-   PS C:\leidian\LDPlayer14\adb.exe shell
-   
-   # 设置执行权限
-   cd /data/local/tmp
-   chmod +x MNN_YOLO
-   
-   # 设置动态库目录
-   export LD_LIBRARY_PATH=/data/local/tmp:$LD_LIBRARY_PATH
-   
-   # 运行
-   ./MNN_YOLO yolo26.mnn test.jpg config.yaml
-   
-   # 查看结果
-   PS C:\leidian\LDPlayer14\adb.exe pull /data/local/tmp/results_test.jpg .\data\
-   ```
+```bash
+# 进入模拟器
+PS C:\leidian\LDPlayer14\adb.exe shell
 
+# 设置执行权限
+cd /data/local/tmp
+chmod +x MNN_YOLO
 
+# 设置动态库目录
+export LD_LIBRARY_PATH=/data/local/tmp:$LD_LIBRARY_PATH
+
+# 运行
+./MNN_YOLO yolo26.mnn test.jpg config.yaml
+
+# 查看结果
+PS C:\leidian\LDPlayer14\adb.exe pull /data/local/tmp/result_test.jpg .\data\
+```
