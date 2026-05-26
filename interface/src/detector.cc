@@ -38,7 +38,7 @@ std::vector<DetectionResult> Detector::Impl::process_image(const MNN::Express::V
                           {1. / 255., 1. / 255., 1. / 255.});
 
   auto input = MNN::Express::_Unsqueeze(image, {0});
-  input = MNN::Express::_Convert(input, MNN::Express::NC4HW4);
+  input = MNN::Express::_Convert(input, MNN::Express::NCHW);
 
   auto outputs = net->onForward({input});
   auto output = MNN::Express::_Convert(outputs[0], MNN::Express::NCHW);
@@ -52,21 +52,22 @@ std::vector<DetectionResult> Detector::Impl::process_image(const MNN::Express::V
   auto ids = MNN::Express::_Gather(output, MNN::Express::_Scalar<int>(5));
   auto boxes = MNN::Express::_Stack({x0, y0, x1, y1}, 1);
 
-  auto result_ids = MNN::Express::_Nms(boxes, scores, 100, 0.8f, 0.25f);
+  auto result_ids = MNN::Express::_Nms(boxes, scores, 100, 0.8f, 0.1f);
 
   auto result_ptr = result_ids->readMap<int>();
   auto box_ptr = boxes->readMap<float>();
-  auto ids_ptr = ids->readMap<int>();
+  auto ids_ptr = ids->readMap<float>();
   auto score_ptr = scores->readMap<float>();
 
   std::vector<DetectionResult> result;
   for (int i = 0; i < 100; ++i) {
     auto idx = result_ptr[i];
     if (idx < 0) break;
-    auto it = class_names.find(ids_ptr[idx]);
-    std::string class_name = it != class_names.end() ? it->second : "unknown_" + std::to_string(ids_ptr[idx]);
+    int class_id = static_cast<int>(ids_ptr[idx]);
+    auto it = class_names.find(class_id);
+    std::string class_name = it != class_names.end() ? it->second : "unknown_" + std::to_string(class_id);
     result.push_back({box_ptr[idx * 4 + 0] * scale, box_ptr[idx * 4 + 1] * scale, box_ptr[idx * 4 + 2] * scale,
-                      box_ptr[idx * 4 + 3] * scale, ids_ptr[idx], class_name, score_ptr[idx]});
+                      box_ptr[idx * 4 + 3] * scale, class_id, class_name, score_ptr[idx]});
   }
   return result;
 }

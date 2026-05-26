@@ -24,22 +24,20 @@ std::map<int, std::string> ParseClassNames(const std::string& config_path) {
   return class_names;
 }
 
-void draw_and_save_image(const std::string& image_path, const std::vector<DetectionResult>& result,
-                         const std::string& output_path) {
+void VisualizeAndExport(const std::string& image_path, const std::vector<DetectionResult>& result, float threshold = 0.2) {
   auto image = MNN::CV::imread(image_path);
-  for (const auto& d : result) {
-    MNN::CV::rectangle(image, {d.x0, d.y0}, {d.x1, d.y1}, {0, 0, 255}, 2);
-  }
-  MNN::CV::imwrite(output_path, image);
-}
+  auto dims = image->getInfo()->dim;
 
-void save_labelme_json(const std::string& image_path, const std::vector<DetectionResult>& result,
-                       const std::string& json_path) {
   Json::Value root;
   root["version"] = "4.5.6";
   root["flags"] = Json::objectValue;
+  root["imageHeight"] = dims[0];
+  root["imageWidth"] = dims[1];
   root["shapes"] = Json::arrayValue;
   for (const auto& d : result) {
+    if (d.confidence < threshold) continue;
+    std::cout << d.class_name << ": " << d.confidence << std::endl;
+
     Json::Value shape(Json::objectValue);
     shape["label"] = d.class_name;
     shape["shape_type"] = "rectangle";
@@ -55,12 +53,16 @@ void save_labelme_json(const std::string& image_path, const std::vector<Detectio
     shape["points"] = points;
     shape["flags"] = Json::objectValue;
     root["shapes"].append(shape);
+
+    MNN::CV::rectangle(image, {d.x0, d.y0}, {d.x1, d.y1}, {0, 0, 180}, 2);
   }
 
-  auto image = MNN::CV::imread(image_path);
-  auto dims = image->getInfo()->dim;
-  root["imageHeight"] = dims[0];
-  root["imageWidth"] = dims[1];
+  auto parent_path = fs::absolute(image_path).parent_path().string();
+  auto stemname = fs::path(image_path).stem().string();
+  auto draw_path = parent_path + "/" + stemname + "_result.jpg";
+  auto json_path = parent_path + "/" + stemname + ".json";
+
+  MNN::CV::imwrite(draw_path, image);
 
   std::ofstream file(json_path);
   if (!file.is_open()) {
@@ -82,8 +84,11 @@ int main(int argc, char* argv[]) {
   std::string model_path = argv[1];
   std::string input_path = argv[2];
   std::string config_path = argv[3];
+  float threshold = argc > 4 ? std::stof(argv[4]) : 0.2;
+  int forward_type = argc > 5 ? std::stoi(argv[5]) : 0;
+  int precision_mode = argc > 6 ? std::stoi(argv[6]) : 0;
 
-  Detector detector(model_path, ParseClassNames(config_path));
+  Detector detector(model_path, ParseClassNames(config_path), forward_type, precision_mode);
 
   if (fs::is_directory(input_path)) {
     for (const auto& entry : fs::directory_iterator(input_path)) {
@@ -91,16 +96,14 @@ int main(int argc, char* argv[]) {
       const auto ext = entry.path().extension().string();
       if (ext != ".jpg" && ext != ".jpeg" && ext != ".png") continue;
 
-      auto full_path = entry.path().string();
-      auto filename = entry.path().filename().string();
+      auto image_path = entry.path().string();
       auto start = std::chrono::high_resolution_clock::now();
-      auto result = detector.run(full_path);
+      auto result = detector.run(image_path);
       auto end = std::chrono::high_resolution_clock::now();
       auto latency = std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
 
-      draw_and_save_image(full_path, result, input_path + "/result_" + filename);
-      save_labelme_json(full_path, result, input_path + "/" + fs::path(filename).replace_extension(".json").string());
-      std::cout << "image: " << full_path << ", latency: " << std::to_string(latency) << "ms" << std::endl;
+      std::cout << "=== image: " << image_path << ", latency: " << std::to_string(latency) << "ms ===" << std::endl;
+      VisualizeAndExport(image_path, result, threshold);
     }
   } else {
     auto start = std::chrono::high_resolution_clock::now();
@@ -108,9 +111,8 @@ int main(int argc, char* argv[]) {
     auto end = std::chrono::high_resolution_clock::now();
     auto latency = std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
 
-    draw_and_save_image(input_path, result, "result_" + fs::path(input_path).filename().string());
-    save_labelme_json(input_path, result, fs::path(input_path).replace_extension(".json").string());
-    std::cout << "image: " << input_path << ", latency: " << std::to_string(latency) << "ms" << std::endl;
+    std::cout << "=== image: " << input_path << ", latency: " << std::to_string(latency) << "ms ===" << std::endl;
+    VisualizeAndExport(input_path, result, threshold);
   }
 
   return 0;

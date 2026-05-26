@@ -179,11 +179,13 @@ C:\leidian\LDPlayer14\adb.exe devices
 # List of devices attached
 # emulator-5554   device
 
-# 复制Demo文件到模拟器/data/local/tmp/目录下
-C:\leidian\LDPlayer14\adb.exe push interface\bin\android\* /data/local/tmp/
+# 推送Demo文件到模拟器/data/local/tmp/目录下
+Get-ChildItem "interface\bin\android\*" | ForEach-Object { C:\leidian\LDPlayer14\adb.exe push $_.FullName /data/local/tmp/ }
+
+# 推送c++动态库到模拟器/data/local/tmp/目录下
 C:\leidian\LDPlayer14\adb.exe push ${/path/to/android-ndk}\toolchains\llvm\prebuilt\linux-x86_64\sysroot\usr\lib\aarch64-linux-android\libc++_shared.so /data/local/tmp/
 
-# 复制模型、配置文件和测试图片到模拟器/data/local/tmp/目录下
+# 推送模型、配置文件和测试图片到模拟器/data/local/tmp/目录下
 C:\leidian\LDPlayer14\adb.exe push runs\detect\20260513\yolo26x_best.mnn /data/local/tmp/
 C:\leidian\LDPlayer14\adb.exe push data\config.yaml /data/local/tmp/
 C:\leidian\LDPlayer14\adb.exe push data\test.jpg /data/local/tmp/
@@ -205,6 +207,6 @@ export LD_LIBRARY_PATH=/data/local/tmp:$LD_LIBRARY_PATH
 # 运行
 ./MNN_YOLO yolo26.mnn test.jpg config.yaml
 
-# 查看结果
+# 拉取结果
 PS C:\leidian\LDPlayer14\adb.exe pull /data/local/tmp/result_test.jpg .\data\
 ```

@@ -23,7 +23,7 @@ struct DetectionResult {
 class INTERFACE_API Detector {
  public:
   Detector(const std::string& model_path, const std::map<int, std::string>& class_names, int forward_type = 0,
-           int precision_mode = 0, int num_threads = 1, bool warmup = true);
+           int precision_mode = 0, int num_threads = 4, bool warmup = true);
   ~Detector();
 
   Detector(const Detector&) = delete;
