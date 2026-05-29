@@ -5,11 +5,10 @@ from glob import glob
 from pathlib import Path
 
 import cv2
+import MNN
 import MNN.cv as cv
 import MNN.numpy as np
 import yaml
-
-import MNN
 
 
 def inference(net, image_path, imgsz):
@@ -49,9 +48,9 @@ def inference(net, image_path, imgsz):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("--model", type=str, default="runs/detect/20260513/yolo26x_best.mnn", help="The .mnn model file for inference")
-    parser.add_argument("--input", type=str, default="data/datasets/20250531/test", help="The data source for inference")
-    parser.add_argument("--config", type=str, default="data/datasets/20250531/config.yaml", help="The configuration file")
+    parser.add_argument("--model", type=str, default="models/yolo26x_best.mnn", help="The .mnn model file for inference")
+    parser.add_argument("--input", type=str, default="data", help="The data source for inference")
+    parser.add_argument("--config", type=str, default="data/config.yaml", help="The configuration file")
     parser.add_argument("--imgsz", type=int, default=640, help="Target image size for inference")
     parser.add_argument("--precision", type=str, default="normal", help="inference precision: normal, low, high, lowBF")
     parser.add_argument("--backend", type=str, default="CPU", help="inference backend: CPU, OPENCL, OPENGL, NN, VULKAN, METAL, TRT, CUDA, HIAI")
