@@ -7,7 +7,7 @@ from ultralytics import YOLO
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("--model", type=str, default="models/yolo26x_best.pt", help="The .pt model file for inference")
+    parser.add_argument("--model", type=str, default="models/yolo26x.pt", help="The .pt model file for inference")
     parser.add_argument("--input", type=str, default="data", help="The data source for inference")
     parser.add_argument("--imgsz", type=int, default=640, help="Target image size for inference")
     args = parser.parse_args()

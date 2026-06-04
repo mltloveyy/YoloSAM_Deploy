@@ -9,6 +9,7 @@
 - torch==2.11.0  # --index-url https://download.pytorch.org/whl/cpu
 - torchvision==0.26.0
 - ultralytics~=8.4
+- onnxscript
 - onnx
 - onnxruntime
 - onnxslim
@@ -23,17 +24,20 @@
 # 爬取图像
 python 01_crawl.py 老虎钳 --num 50 --output data/downloads
 
+# 标注图像
+python 02_annotation.py --sam_model models/sam2.1_b.pt --image data/test.jpg
+
 # 模型训练
-python 02_train.py --train --config data/config.yaml --model models/yolo26x.pt --model_type yolo26x.yaml --device 0
+python 03_train.py --config data/config.yaml --model models/yolo26x.pt --model_type yolo26x.yaml --device 0
 
 # 模型导出
-python 02_train.py --export_mnn --model models/yolo26x.pt
+python 04_convert.py --model models/yolo26x.pt --type YOLO
 
 # pt模型推理
-python 03_inference.py --model models/yolo26x.pt --input data/test
+python 05_inference.py --model models/yolo26x.pt --input data/test
 
 # mnn模型推理
-python 04_mnn_inference.py --model models/yolo26x.mnn --input data/test --config data/config.yaml
+python 06_mnn_inference.py --model models/yolo26x.mnn --input data/test --config data/config.yaml
 
 ```
 
@@ -185,7 +189,7 @@ Get-ChildItem "interface\bin\android\*" | ForEach-Object { C:\leidian\LDPlayer14
 C:\leidian\LDPlayer14\adb.exe push ${/path/to/android-ndk}\toolchains\llvm\prebuilt\linux-x86_64\sysroot\usr\lib\aarch64-linux-android\libc++_shared.so /data/local/tmp/
 
 # 推送模型、配置文件和测试图片到模拟器/data/local/tmp/目录下
-C:\leidian\LDPlayer14\adb.exe push runs\detect\20260513\yolo26x_best.mnn /data/local/tmp/
+C:\leidian\LDPlayer14\adb.exe push models\yolo26x.mnn /data/local/tmp/
 C:\leidian\LDPlayer14\adb.exe push data\config.yaml /data/local/tmp/
 C:\leidian\LDPlayer14\adb.exe push data\test.jpg /data/local/tmp/
 ```
@@ -204,7 +208,7 @@ chmod +x MNN_YOLO
 export LD_LIBRARY_PATH=/data/local/tmp:$LD_LIBRARY_PATH
 
 # 运行
-./MNN_YOLO yolo26.mnn test.jpg config.yaml
+./MNN_YOLO yolo26x.mnn test.jpg config.yaml
 
 # 拉取结果
 PS C:\leidian\LDPlayer14\adb.exe pull /data/local/tmp/result_test.jpg .\data\

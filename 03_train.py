@@ -3,7 +3,7 @@ import argparse
 from ultralytics import YOLO
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="Train model")
+    parser = argparse.ArgumentParser()
     parser.add_argument("--config", type=str, default="data/datasets/20250531/config.yaml", help="The path to the dataset configuration file")
     parser.add_argument("--model", type=str, default="models/yolo26x.pt", help="The model file for training")
     parser.add_argument("--model_type", type=str, default="yolo26x.yaml", help="The model type for training")
@@ -28,6 +28,8 @@ if __name__ == "__main__":
         # amp=False,
         multi_scale=args.multi_scale,
     )
+    print("=== Train complete ===\n")
 
     # Evaluate
     metrics = model.val(data=args.dataset)
+    print("=== Eval complete ===\n")

@@ -48,7 +48,7 @@ def inference(net, image_path, imgsz):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("--model", type=str, default="models/yolo26x_best.mnn", help="The .mnn model file for inference")
+    parser.add_argument("--model", type=str, default="models/yolo26x.mnn", help="The .mnn model file for inference")
     parser.add_argument("--input", type=str, default="data", help="The data source for inference")
     parser.add_argument("--config", type=str, default="data/config.yaml", help="The configuration file")
     parser.add_argument("--imgsz", type=int, default=640, help="Target image size for inference")
