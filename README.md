@@ -25,7 +25,7 @@
 python 01_crawl.py 老虎钳 --num 50 --output data/downloads
 
 # 标注图像
-python 02_annotation.py --sam_model models/sam2.1_b.pt --image data/test.jpg
+python 02_annotation.py --model models/sam2.1_b.pt --image data/test.jpg
 
 # 模型训练
 python 03_train.py --config data/config.yaml --model models/yolo26x.pt --model_type yolo26x.yaml --device 0
@@ -34,10 +34,10 @@ python 03_train.py --config data/config.yaml --model models/yolo26x.pt --model_t
 python 04_convert.py --model models/yolo26x.pt --type YOLO
 
 # pt模型推理
-python 05_inference.py --model models/yolo26x.pt --input data/test
+python 05_yolo_inference.py --model models/yolo26x.pt --input data/test
 
 # mnn模型推理
-python 06_mnn_inference.py --model models/yolo26x.mnn --input data/test --config data/config.yaml
+python 06_yolo_inference_mnn.py --model models/yolo26x.mnn --input data/test --config data/config.yaml
 
 ```
 

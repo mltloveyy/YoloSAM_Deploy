@@ -46,11 +46,11 @@ def save_labelme_json(image_path, loaded_shapes, img_h, img_w):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("--sam_model", type=str, default="models/sam2.1_b.pt")
+    parser.add_argument("--model", type=str, default="models/sam2.1_b.pt")
     parser.add_argument("--image", type=str, default="data/test.jpg")
     args = parser.parse_args()
 
-    overrides = {"conf": 0.25, "imgsz": 1024, "model": args.sam_model, "save": False}
+    overrides = {"conf": 0.25, "imgsz": 1024, "model": args.model, "save": False}
     sam = SAM2Predictor(overrides=overrides)
 
     img = cv2.imread(args.image, cv2.IMREAD_UNCHANGED)
@@ -95,8 +95,8 @@ if __name__ == "__main__":
                 pts = np.array(shape["points"], np.int32)
                 if len(pts) < 3:
                     continue
-                # 默认蓝色轮廓，选中的用黄色高亮
-                color = (0, 255, 255) if i == state["selected_idx"] else (255, 0, 0)
+                # 默认红色轮廓，选中的用黄色高亮
+                color = (0, 255, 255) if i == state["selected_idx"] else (0, 0, 255)
                 cv2.polylines(img_show, [pts], True, color, 2)
                 # 标签放在多边形第一个点附近
                 cv2.putText(img_show, shape["label"], tuple(pts[0]), cv2.FONT_HERSHEY_SIMPLEX, 0.7, color, 2)
@@ -104,21 +104,21 @@ if __name__ == "__main__":
             # 未做 bbox 推理时，绘制原始 bbox 矩形和标签
             for shape in loaded_shapes:
                 pts = np.array(shape["points"], np.int32).reshape(-1, 2)
-                x, y, w, h = cv2.boundingRect(pts)
-                cv2.rectangle(img_show, (x, y), (x + w, y + h), (0, 255, 0), 2)
-                cv2.putText(img_show, shape["label"], (x, y - 5), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 255, 0), 2)
+                cv2.rectangle(img_show, pts[0], pts[1], (0, 255, 255), 2)
+                cv2.putText(img_show, shape["label"], (pts[0][0], pts[0][1] - 5), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 255, 255), 2)
 
         # 绘制点提示的点（绿色正，红色负）
         for pt, lbl in zip(state["points"], state["labels"]):
             color = (0, 255, 0) if lbl == 1 else (0, 0, 255)
+            print(f"Prompt points: {pt}, label: {lbl}")
             cv2.circle(img_show, pt, 5, color, -1)
 
         # 绘制点提示的临时分割结果
         if state["temp_result"] is not None and state["temp_result"][0].masks is not None:
             pts = state["temp_result"][0].masks.xy[0].astype(np.int32)
-            cv2.polylines(img_show, [pts], True, (0, 0, 255), 2)
+            cv2.polylines(img_show, [pts], True, (255, 0, 0), 2)
             x, y, w, h = cv2.boundingRect(pts)
-            cv2.rectangle(img_show, (x, y), (x + w, y + h), (0, 255, 0), 2)
+            cv2.rectangle(img_show, (x, y), (x + w, y + h), (0, 0, 255), 2)
 
         # 左上角：若选中形状则显示其 label
         if state["selected_idx"] is not None and state["predicted_shapes"]:
