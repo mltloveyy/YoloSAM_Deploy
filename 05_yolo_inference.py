@@ -22,8 +22,7 @@ if __name__ == "__main__":
         save_subdir = os.path.join(output_dir, Path(r.path).stem)
         os.makedirs(save_subdir, exist_ok=True)
         r.save(filename=os.path.join(save_subdir, "0result.jpg"), conf=False)
-        boxes = r.boxes
-        for i, box in enumerate(boxes):
+        for i, box in enumerate(r.boxes):
             x0, y0, x1, y1 = box.xyxy[0]
             x0, y0, x1, y1 = int(x0), int(y0), int(x1), int(y1)
             patch = r.orig_img[y0:y1, x0:x1]

@@ -17,97 +17,90 @@ from ultralytics.utils.files import file_size
 OPSET = best_onnx_opset(onnx)
 
 
-class ImageEncoder(torch.nn.Module):
+class Encoder(torch.nn.Module):
     def __init__(self, model: SAM2Model):
         super().__init__()
+        self.directly_add_no_mem_embed = model.directly_add_no_mem_embed
+        self.no_mem_embed = model.no_mem_embed  # [1,1,256]
         self.image_encoder = model.image_encoder
+        self.mask_decoder = model.sam_mask_decoder
+        self.num_feature_levels = model.num_feature_levels
+        self._bb_feat_sizes = [(256, 256), (128, 128), (64, 64)]
 
-    def forward(self, input: torch.Tensor):
-        backbone_out = self.image_encoder(input)
-        image_embeddings = backbone_out["backbone_fpn"][2]
-        return image_embeddings
+    @torch.no_grad()
+    def forward(self, image: torch.Tensor):
+        backbone_out = self.image_encoder(image)  # {"vision_features","vision_pos_enc","backbone_fpn"}
+        backbone_out["backbone_fpn"][0] = self.mask_decoder.conv_s0(backbone_out["backbone_fpn"][0])
+        backbone_out["backbone_fpn"][1] = self.mask_decoder.conv_s1(backbone_out["backbone_fpn"][1])
+
+        feature_maps = backbone_out["backbone_fpn"][-self.num_feature_levels :]
+        vision_feats = [x.flatten(2).permute(2, 0, 1) for x in feature_maps]  # flatten NxCxHxW to HWxNxC
+        if self.directly_add_no_mem_embed:
+            vision_feats[-1] = vision_feats[-1] + self.no_mem_embed
+        feats = [feat.permute(1, 2, 0).view(1, -1, *feat_size) for feat, feat_size in zip(vision_feats[::-1], self._bb_feat_sizes[::-1])][::-1]
+
+        image_embed = feats[-1]
+        high_res_feats_0 = feats[0]
+        high_res_feats_1 = feats[1]
+        return image_embed, high_res_feats_0, high_res_feats_1
 
 
-class PointDecoder(torch.nn.Module):
+class Decoder(torch.nn.Module):
     def __init__(self, model: SAM2Model):
         super().__init__()
         self.prompt_encoder = model.sam_prompt_encoder
         self.mask_decoder = model.sam_mask_decoder
 
+    @torch.no_grad()
     def forward(
         self,
-        image_embeddings: torch.Tensor,
         point_coords: torch.Tensor,
         point_labels: torch.Tensor,
-        imgsz: torch.Tensor,
+        image_embed: torch.Tensor,
+        high_res_feats_0: torch.Tensor,
+        high_res_feats_1: torch.Tensor,
     ):
-        sparse_emb, dense_emb = self.prompt_encoder(points=(point_coords, point_labels), boxes=None, masks=None)
-
-        masks, ious, _, _ = self.mask_decoder(
-            image_embeddings=image_embeddings,
+        sparse_embeddings, dense_embeddings = self.prompt_encoder(points=(point_coords, point_labels), boxes=None, masks=None)
+        pred_mask, _, _, _ = self.mask_decoder(
+            image_embeddings=image_embed,
             image_pe=self.prompt_encoder.get_dense_pe(),
-            sparse_prompt_embeddings=sparse_emb,
-            dense_prompt_embeddings=dense_emb,
+            sparse_prompt_embeddings=sparse_embeddings,
+            dense_prompt_embeddings=dense_embeddings,
             multimask_output=False,
             repeat_image=False,
-            high_res_features=None,
+            high_res_features=[high_res_feats_0, high_res_feats_1],
         )
-        masks = F.interpolate(masks, (imgsz[0], imgsz[1]), mode="bilinear", align_corners=False)
-
-        return masks, ious
-
-
-class BoxDecoder(torch.nn.Module):
-    def __init__(self, model: SAM2Model):
-        super().__init__()
-        self.prompt_encoder = model.sam_prompt_encoder
-        self.mask_decoder = model.sam_mask_decoder
-
-    def forward(
-        self,
-        image_embeddings: torch.Tensor,
-        boxes: torch.Tensor,
-        imgsz: torch.Tensor,
-    ):
-        sparse_emb, dense_emb = self.prompt_encoder(points=None, boxes=boxes, masks=None)
-
-        masks, ious, _, _ = self.mask_decoder(
-            image_embeddings=image_embeddings,
-            image_pe=self.prompt_encoder.get_dense_pe(),
-            sparse_prompt_embeddings=sparse_emb,
-            dense_prompt_embeddings=dense_emb,
-            multimask_output=False,
-            repeat_image=True,
-            high_res_features=None,
-        )
-        masks = F.interpolate(masks, (imgsz[0], imgsz[1]), mode="bilinear", align_corners=False)
-
-        return masks, ious
+        mask = F.interpolate(pred_mask, (1024, 1024), mode="bilinear", align_corners=False)
+        return mask
 
 
 def export_encoder(model, abspath_stem, half: bool, int8: bool):
     LOGGER.info(f"\n{colorstr("ONNX:")} starting export with onnx {onnx.__version__} opset {OPSET}...")
+    image = torch.randn(1, 3, 1024, 1024)
+    # _ = model(image)
+
     onnx_path = abspath_stem + "_enc.onnx"
-    mnn_path = abspath_stem + "_enc.mnn"
     t0 = time.time()
     torch.onnx.export(
         model,
-        torch.randn(1, 3, 1024, 1024),
+        image,
         onnx_path,
         opset_version=OPSET,
-        input_names=["input"],
-        output_names=["image_embeddings"],
         external_data=False,
+        input_names=["image"],
+        output_names=["image_embed", "high_res_feats_0", "high_res_feats_1"],
     )
     model_onnx = onnx.load(onnx_path)
     LOGGER.info(f"{colorstr("ONNX:")} slimming with onnxslim {onnxslim.__version__}...")
     model_onnx = onnxslim.slim(model_onnx)
+    onnx.checker.check_model(model_onnx)
     onnx.save(model_onnx, onnx_path)
     t1 = time.time()
     mb = file_size(onnx_path)
     assert mb > 0.0, "0.0 MB output model size"
     LOGGER.info(f"{colorstr("ONNX:")} export success ✅ {(t1 - t0):.1f}s, saved as '{onnx_path}' ({mb:.1f} MB)")
 
+    mnn_path = abspath_stem + "_enc.mnn"
     onnx2mnn(onnx_path, mnn_path, half, int8, "biz", colorstr("MNN:"))
     t2 = time.time()
     mb = file_size(mnn_path)
@@ -117,58 +110,38 @@ def export_encoder(model, abspath_stem, half: bool, int8: bool):
     return mnn_path
 
 
-def export_decoder(model, mode, abspath_stem, half: bool, int8: bool):
+def export_decoder(model, abspath_stem, half: bool, int8: bool):
     LOGGER.info(f"\n{colorstr("ONNX:")} starting export with onnx {onnx.__version__} opset {OPSET}...")
-    image_embeddings = torch.randn(1, 256, 64, 64)
-    point_coords = torch.randint(0, 1024, (1, 3, 2))  # [1, num_points, 2]
-    point_labels = torch.randint(0, 2, (1, 3))  # [1, num_points]
-    boxes = torch.randint(0, 1024, (3, 2, 2))  # [num_boxes, 2, 2]
-    imgsz = torch.tensor([1024, 1024], dtype=torch.int64)
-    if mode == "point":
-        onnx_path = abspath_stem + "_pdec.onnx"
-        mnn_path = abspath_stem + "_pdec.mnn"
-        inputs = (image_embeddings, point_coords, point_labels, imgsz)
-        input_names = ["image_embeddings", "point_coords", "point_labels", "imgsz"]
-        num_points = torch.export.Dim("num_points", min=1, max=8)
-        dynamic_shapes = {
-            "image_embeddings": None,
-            "point_coords": {1: num_points},
-            "point_labels": {1: num_points},
-            "imgsz": None,
-        }
-    elif mode == "box":
-        onnx_path = abspath_stem + "_bdec.onnx"
-        mnn_path = abspath_stem + "_bdec.mnn"
-        inputs = (image_embeddings, boxes, imgsz)
-        input_names = ["image_embeddings", "boxes", "imgsz"]
-        num_boxes = torch.export.Dim("num_boxes", min=1, max=64)
-        dynamic_shapes = {
-            "image_embeddings": None,
-            "boxes": {0: num_boxes},
-            "imgsz": None,
-        }
-    else:
-        raise ValueError(f"Unknown mode: '{mode}', only support 'point' or 'box'")
+    point_coords = torch.rand((1, 4, 2))  # [1, num_points, 2]
+    point_labels = torch.randint(-1, 4, (1, 4))  # [1, num_points]
+    image_embed = torch.randn((1, 256, 64, 64))
+    high_res_feats_0 = torch.randn((1, 32, 256, 256))
+    high_res_feats_1 = torch.randn((1, 64, 128, 128))
+    # _ = model(point_coords, point_labels, image_embed, high_res_feats_0, high_res_feats_1)
+
+    onnx_path = abspath_stem + "_dec.onnx"
     t0 = time.time()
     torch.onnx.export(
         model,
-        inputs,
+        (point_coords, point_labels, image_embed, high_res_feats_0, high_res_feats_1),
         onnx_path,
         opset_version=OPSET,
-        input_names=input_names,
-        output_names=["masks", "ious"],
-        dynamic_shapes=dynamic_shapes,
         external_data=False,
+        input_names=["point_coords", "point_labels", "image_embed", "high_res_feats_0", "high_res_feats_1"],
+        output_names=["mask"],
+        dynamic_axes={"point_coords": {1: "num_points"}, "point_labels": {1: "num_points"}},
     )
     model_onnx = onnx.load(onnx_path)
     LOGGER.info(f"{colorstr("ONNX:")} slimming with onnxslim {onnxslim.__version__}...")
     model_onnx = onnxslim.slim(model_onnx)
+    onnx.checker.check_model(model_onnx)
     onnx.save(model_onnx, onnx_path)
     t1 = time.time()
     mb = file_size(onnx_path)
     assert mb > 0.0, "0.0 MB output model size"
     LOGGER.info(f"{colorstr("ONNX:")} export success ✅ {(t1 - t0):.1f}s, saved as '{onnx_path}' ({mb:.1f} MB)")
 
+    mnn_path = abspath_stem + "_dec.mnn"
     onnx2mnn(onnx_path, mnn_path, half, int8, "biz", colorstr("MNN:"))
     t2 = time.time()
     mb = file_size(mnn_path)
@@ -195,20 +168,9 @@ if __name__ == "__main__":
         t0 = time.time()
         model = build_sam2_b(args.model)
         abspath_stem = str(Path(args.model).with_suffix(""))
-
-        image_enc = ImageEncoder(model).eval()
-        enc_path = export_encoder(image_enc, abspath_stem, half, int8)
-
-        point_dec = PointDecoder(model).eval()
-        pdec_path = export_decoder(point_dec, "point", abspath_stem, half, int8)
-
-        box_dec = BoxDecoder(model).eval()
-        bdec_path = export_decoder(box_dec, "box", abspath_stem, half, int8)
+        enc_path = export_encoder(Encoder(model).eval(), abspath_stem, half, int8)
+        dec_path = export_decoder(Decoder(model).eval(), abspath_stem, half, int8)
         t1 = time.time()
-
-        print(
-            f"\nExport complete ({(t1 - t0):.1f}s)"
-            f"\nResults saved to {Path(enc_path).absolute()}"
-            f"\n                 {Path(pdec_path).absolute()}"
-            f"\n                 {Path(bdec_path).absolute()}"
-        )
+        print(f"\nExport complete ({(t1 - t0):.1f}s)\nResults saved to {Path(enc_path).absolute()}\n                 {Path(dec_path).absolute()}")
+    else:
+        raise ValueError(f"Unknown type: '{args.type}', only support 'YOLO' or 'SAM'")

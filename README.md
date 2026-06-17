@@ -37,7 +37,7 @@ python 04_convert.py --model models/yolo26x.pt --type YOLO
 python 05_yolo_inference.py --model models/yolo26x.pt --input data/test
 
 # mnn模型推理
-python 06_yolo_inference_mnn.py --model models/yolo26x.mnn --input data/test --config data/config.yaml
+python 05_yolo_inference_mnn.py --model models/yolo26x.mnn --input data/test --config data/config.yaml
 
 ```
 

@@ -14,7 +14,6 @@ import yaml
 def inference(net, image_path, imgsz):
     # Pre-process
     image = cv.imread(image_path)
-    # image = image[..., ::-1]  # BGR to RGB
     ih, iw, _ = image.shape
     length = max((ih, iw))
     scale = length / imgsz
