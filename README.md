@@ -1,4 +1,6 @@
-# Railway_Tools_Detection
+# YoloSAM_Deploy
+
+> YoloSAM_Deploy: Cross-platform YOLO & SAM inference with Ultralytics (Python) and MNN (Python/C++) on PC and Mobile
 
 ## Python训练与推理
 
@@ -170,12 +172,12 @@ make -j8
 1. cmake添加`-DBUILD_DEMO=ON`选项重新构建编译，得到可执行文件`MNN_YOLO`，生成目录在`interface/bin/android`下
 
 2. Win系统下安装ADB工具(模拟器or官方工具)
-  
-  - `模拟器`: 下载并安装[雷电模拟器](https://www.ldmnq.com/)，打开雷电模拟器，菜单->软件设置->其他，打开ROOT权限，ADB调试选择”开启本地连接“，保存并重启模拟器，ADB路径为`${模拟器安装路径}\adb.exe`，默认路径：`C:\leidian\LDPlayer9\adb.exe`
-  - `官方工具`: 下载[官方Platform-Tools](https://googledownloads.cn/android/repository/platform-tools-latest-windows.zip)并解压，ADB路径为`${platform-tools}\adb.exe`
+   
+   - `模拟器`: 下载并安装[雷电模拟器](https://www.ldmnq.com/)，打开雷电模拟器，菜单->软件设置->其他，打开ROOT权限，ADB调试选择”开启本地连接“，保存并重启模拟器，ADB路径为`${模拟器安装路径}\adb.exe`，默认路径：`C:\leidian\LDPlayer9\adb.exe`
+   - `官方工具`: 下载[官方Platform-Tools](https://googledownloads.cn/android/repository/platform-tools-latest-windows.zip)并解压，ADB路径为`${platform-tools}\adb.exe`
 
 3. 推送文件到模拟器(以模拟器的ADB为例)
-   
+
 ```powershell
 # 列出已连接设备
 C:\leidian\LDPlayer14\adb.exe devices
@@ -195,7 +197,7 @@ C:\leidian\LDPlayer14\adb.exe push data\test.jpg /data/local/tmp/
 ```
 
 6. 运行Demo
-   
+
 ```bash
 # 进入模拟器
 PS C:\leidian\LDPlayer14\adb.exe shell
