@@ -68,12 +68,8 @@ if __name__ == "__main__":
     names_dict = data["names"]
 
     # Load model
-    config = {}
-    config["precision"] = args.precision
-    config["backend"] = args.backend
-    config["numThread"] = args.thread
-    rt = MNN.nn.create_runtime_manager((config,))
-    net = MNN.nn.load_module_from_file(args.model, [], [], runtime_manager=rt, shape_mutable=False)
+    rt = MNN.nn.create_runtime_manager(({"precision": args.precision, "backend": args.backend, "numThread": args.thread},))
+    net = MNN.nn.load_module_from_file(args.model, [], [], runtime_manager=rt)
 
     # Warmup infernece
     dummy_input = np.zeros((1, 3, args.imgsz, args.imgsz))

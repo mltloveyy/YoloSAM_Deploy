@@ -26,13 +26,13 @@ if __name__ == "__main__":
     overrides = {"conf": 0.25, "imgsz": args.imgsz, "model": args.model, "save": False}
     sam = SAM2Predictor(overrides=overrides)
 
-    # encode
+    # Inference
     img = cv2.imread(args.image, cv2.IMREAD_UNCHANGED)
     sam.set_image(img)
 
     img_prompt = img.copy()
     img_result = img.copy()
-    # boxes prompt
+    # multi boxes prompt
     if num_boxes > 1:
         boxes = np.array(args.boxes[: num_boxes * 4]).reshape(-1, 4)
         for i in range(num_boxes):
@@ -44,7 +44,7 @@ if __name__ == "__main__":
             x, y, w, h = cv2.boundingRect(pts)
             cv2.rectangle(img_result, (x, y), (x + w, y + h), (0, 0, 255), 2)  # 红色框
     else:
-        # box or points prompt
+        # one box or multi points prompt
         points = None
         labels = None
         box = None
@@ -58,7 +58,7 @@ if __name__ == "__main__":
             cv2.rectangle(img_prompt, (box[0][0], box[0][1]), (box[0][2], box[0][3]), (0, 255, 255), 2)  # 黄色框
         results = sam(bboxes=box, points=points, labels=labels)
         pts = results[0].masks.xy[0].astype(np.int32)
-        cv2.polylines(img_result, [pts], True, (255, 0, 0), 2)  # 蓝色边界
+        cv2.drawContours(img_result, [pts], -1, (255, 0, 0), 2)  # 蓝色边界
         x, y, w, h = cv2.boundingRect(pts)
         cv2.rectangle(img_result, (x, y), (x + w, y + h), (0, 0, 255), 2)  # 红色框
     cv2.imwrite(f"{args.image[:-4]}_segment.jpg", cv2.hconcat([img_prompt, img_result]))

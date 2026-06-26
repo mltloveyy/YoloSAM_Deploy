@@ -97,7 +97,7 @@ if __name__ == "__main__":
                     continue
                 # 默认红色轮廓，选中的用黄色高亮
                 color = (0, 255, 255) if i == state["selected_idx"] else (0, 0, 255)
-                cv2.polylines(img_show, [pts], True, color, 2)
+                cv2.drawContours(img_show, [pts], -1, color, 2)
                 # 标签放在多边形第一个点附近
                 cv2.putText(img_show, shape["label"], tuple(pts[0]), cv2.FONT_HERSHEY_SIMPLEX, 0.7, color, 2)
         else:
@@ -116,7 +116,7 @@ if __name__ == "__main__":
         # 绘制点提示的临时分割结果
         if state["temp_result"] is not None and state["temp_result"][0].masks is not None:
             pts = state["temp_result"][0].masks.xy[0].astype(np.int32)
-            cv2.polylines(img_show, [pts], True, (255, 0, 0), 2)
+            cv2.drawContours(img_show, [pts], -1, (255, 0, 0), 2)
             x, y, w, h = cv2.boundingRect(pts)
             cv2.rectangle(img_show, (x, y), (x + w, y + h), (0, 0, 255), 2)
 

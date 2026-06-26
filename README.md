@@ -31,7 +31,7 @@ python 02_annotation.py --model models/sam2.1_b.pt --image data/test.jpg
 python 03_train.py --config data/config.yaml --model models/yolo26x.pt --model_type yolo26x.yaml --device 0
 
 # 模型导出
-python 04_convert.py --model models/yolo26x.pt --type YOLO
+python 04_yolo_convert.py --model models/yolo26x.pt
 
 # pt模型推理
 python 05_yolo_inference.py --model models/yolo26x.pt --input data/test
