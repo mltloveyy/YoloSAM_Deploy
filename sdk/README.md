@@ -4,7 +4,7 @@
 
 ## 编译与运行Demo
 
-[Build指南](build_guide.md)
+[Build指南](sdk_build_guide.md)
 
 ## 集成
 
