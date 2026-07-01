@@ -163,7 +163,7 @@ Segmentation segment(int[] pointCoords, int[] pointLabels);
 
 #### 4. `release`
 
-释放Native端`Segmentor`对象, 避免内存泄漏。调用后不可再使用`load`和`segment`。 
+释放Native端`Segmentor`对象，避免内存泄漏。调用后不可再使用`load`和`segment`。 
 
 ---
 

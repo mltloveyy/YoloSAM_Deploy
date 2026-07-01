@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.10)
-project(MNN_YOLO)
+project(MNN_INFERENCE)
 
 option(BUILD_FOR_ANDROID "Build for Android platform" OFF)
 option(BUILD_DEMO "Build demo/exec or not" OFF)

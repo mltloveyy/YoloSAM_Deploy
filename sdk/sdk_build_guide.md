@@ -44,7 +44,7 @@ export LD_LIBRARY_PATH=./sdk/bin/x86:$LD_LIBRARY_PATH
 
 ### NDK
 
-1. 下载[NDK](https://developer.android.google.cn/ndk/downloads?hl=zh-cn), 解压到`/path/to/android-ndk`
+1. 下载[NDK](https://developer.android.google.cn/ndk/downloads?hl=zh-cn)，解压到`/path/to/android-ndk`
 
 2. 在`.bashrc`或者`.bash_profile`中设置NDK环境变量，例如：`export ANDROID_NDK=/path/to/android-ndk`
 
