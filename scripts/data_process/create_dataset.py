@@ -106,11 +106,11 @@ def json2txt(classes, root_dir, save_dir, ignores=None):
 
 if __name__ == "__main__":
     root_dirs = [
-        "/home/yy/workspace/datasets/railwaytools/annotation/20241115",
-        "/home/yy/workspace/datasets/railwaytools/annotation/20241207",
+        "data/datasets/railwaytools/annotation/20241115",
+        "data/datasets/railwaytools/annotation/20241207",
     ]
-    save_dir = "/home/yy/workspace/datasets/railwaytools/train"
-    yaml_path = "data/railwaytools.yaml"
+    save_dir = "data/datasets/railwaytools/train"
+    yaml_path = "data/railwaytool_list.yaml"
 
     ignores = [
         "yaoshi",

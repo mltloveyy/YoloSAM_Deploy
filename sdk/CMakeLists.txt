@@ -33,33 +33,37 @@ endif()
 set(MNN_LIBS ${LIB_DIR}/libMNN_Express.so ${LIB_DIR}/libMNNOpenCV.so ${LIB_DIR}/libMNN.so)
 
 # Library
-add_library(detector SHARED src/detector.cc)
-target_include_directories(detector
+add_library(algorithm SHARED src/detector.cc src/segmentor.cc)
+target_include_directories(algorithm
     PRIVATE ${MNN_INCLUDE_DIRS}
     PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include> 
            $<INSTALL_INTERFACE:include>
 )
-target_link_libraries(detector PUBLIC ${MNN_LIBS})
+target_link_libraries(algorithm PUBLIC ${MNN_LIBS})
 
-add_custom_command(TARGET detector POST_BUILD 
-    COMMAND ${CMAKE_COMMAND} -E copy_if_different ${MNN_LIBS} $<TARGET_FILE_DIR:detector>
+add_custom_command(TARGET algorithm POST_BUILD 
+    COMMAND ${CMAKE_COMMAND} -E copy_if_different ${MNN_LIBS} $<TARGET_FILE_DIR:algorithm>
 )
 
 # Executable
 if(BUILD_DEMO)
-    add_executable(${PROJECT_NAME} src/main.cc)
-    target_include_directories(${PROJECT_NAME} PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include ${MNN_INCLUDE_DIRS})
-    target_link_libraries(${PROJECT_NAME} PRIVATE detector)
+    add_executable(DETECT examples/demo_det.cc)
+    target_include_directories(DETECT PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include ${MNN_INCLUDE_DIRS})
+    target_link_libraries(DETECT PRIVATE algorithm)
 
     if(BUILD_FOR_ANDROID)
-        target_include_directories(${PROJECT_NAME} PRIVATE ${3RD_PARTY_DIR}/jsoncpp/include ${3RD_PARTY_DIR}/yaml-cpp/include)
-        target_link_libraries(${PROJECT_NAME} PRIVATE ${LIB_DIR}/libjsoncpp.so ${LIB_DIR}/libyaml-cpp.so)
-        add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD 
-            COMMAND ${CMAKE_COMMAND} -E copy_if_different ${LIB_DIR}/libjsoncpp.so ${LIB_DIR}/libyaml-cpp.so $<TARGET_FILE_DIR:${PROJECT_NAME}>
+        target_include_directories(DETECT PRIVATE ${3RD_PARTY_DIR}/jsoncpp/include ${3RD_PARTY_DIR}/yaml-cpp/include)
+        target_link_libraries(DETECT PRIVATE ${LIB_DIR}/libjsoncpp.so ${LIB_DIR}/libyaml-cpp.so)
+        add_custom_command(TARGET DETECT POST_BUILD 
+            COMMAND ${CMAKE_COMMAND} -E copy_if_different ${LIB_DIR}/libjsoncpp.so ${LIB_DIR}/libyaml-cpp.so $<TARGET_FILE_DIR:DETECTOR>
         )
     else()
         find_package(jsoncpp REQUIRED)
         find_package(yaml-cpp REQUIRED)
-        target_link_libraries(${PROJECT_NAME} PRIVATE jsoncpp yaml-cpp)
+        target_link_libraries(DETECT PRIVATE jsoncpp yaml-cpp)
     endif()
+
+    add_executable(SEGMENT examples/demo_seg.cc)
+    target_include_directories(SEGMENT PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include ${MNN_INCLUDE_DIRS})
+    target_link_libraries(SEGMENT PRIVATE algorithm)
 endif()

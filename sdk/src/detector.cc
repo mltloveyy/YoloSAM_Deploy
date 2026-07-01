@@ -2,6 +2,7 @@
 
 #include "MNN/ImageProcess.hpp"
 #include "MNN/expr/Executor.hpp"
+#include "MNN/expr/ExprCreator.hpp"
 #include "MNN/expr/Module.hpp"
 #include "cv/cv.hpp"
 
@@ -66,8 +67,11 @@ std::vector<DetectionResult> Detector::Impl::process_image(const MNN::Express::V
     int class_id = static_cast<int>(ids_ptr[idx]);
     auto it = class_names.find(class_id);
     std::string class_name = it != class_names.end() ? it->second : "unknown_" + std::to_string(class_id);
-    result.push_back({box_ptr[idx * 4 + 0] * scale, box_ptr[idx * 4 + 1] * scale, box_ptr[idx * 4 + 2] * scale,
-                      box_ptr[idx * 4 + 3] * scale, class_id, class_name, score_ptr[idx]});
+    int x0 = static_cast<int>(box_ptr[idx * 4] * scale);
+    int y0 = static_cast<int>(box_ptr[idx * 4 + 1] * scale);
+    int x1 = static_cast<int>(box_ptr[idx * 4 + 2] * scale);
+    int y1 = static_cast<int>(box_ptr[idx * 4 + 3] * scale);
+    result.push_back({x0, y0, x1, y1, class_id, class_name, score_ptr[idx]});
   }
   return result;
 }
@@ -98,7 +102,6 @@ Detector::Detector(const std::string& model_path, const std::map<int, std::strin
     MNN_ERROR("Empty RuntimeManger\n");
     return;
   }
-  pimpl_->rtmgr->setCache(".cachefile");
 
   pimpl_->net = std::shared_ptr<MNN::Express::Module>(MNN::Express::Module::load({}, {}, model_path.c_str(), pimpl_->rtmgr));
   if (!pimpl_->net) {

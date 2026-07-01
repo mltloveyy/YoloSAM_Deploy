@@ -65,8 +65,8 @@ if __name__ == "__main__":
             mask = MNN.expr.convert(dec_outputs[0], MNN.expr.NCHW)
             # Post-process
             t4 = time.time()
-            mask = np.squeeze(mask[:, :, :new_h, :new_w]) > 0
-            mask = (mask * 255).astype(np.uint8)
+            mask = np.squeeze(mask)[:new_h, :new_w] > 0
+            mask = mask.astype(np.uint8)
             mask = cv.resize(mask, (iw, ih), interpolation=cv.INTER_NEAREST)
             contours, _ = cv.findContours(mask, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_SIMPLE)
             t5 = time.time()
@@ -95,8 +95,8 @@ if __name__ == "__main__":
         mask = MNN.expr.convert(dec_outputs[0], MNN.expr.NCHW)
         # Post-process
         t4 = time.time()
-        mask = np.squeeze(mask[:, :, :new_h, :new_w]) > 0
-        mask = (mask * 255).astype(np.uint8)
+        mask = np.squeeze(mask)[:new_h, :new_w] > 0
+        mask = mask.astype(np.uint8)
         mask = cv.resize(mask, (iw, ih), interpolation=cv.INTER_NEAREST)
         contours, _ = cv.findContours(mask, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_SIMPLE)
         t5 = time.time()

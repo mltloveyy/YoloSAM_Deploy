@@ -34,32 +34,36 @@ void VisualizeAndExport(const std::string& image_path, const std::vector<Detecti
   root["imageHeight"] = dims[0];
   root["imageWidth"] = dims[1];
   root["shapes"] = Json::arrayValue;
-  for (const auto& d : result) {
-    if (d.confidence < threshold) continue;
-    std::cout << d.class_name << ": " << d.confidence << std::endl;
+  for (const auto& r : result) {
+    if (r.confidence < threshold) continue;
+    std::cout << r.class_name << ": " << r.confidence << std::endl;
 
     Json::Value shape(Json::objectValue);
-    shape["label"] = d.class_name;
+    shape["label"] = r.class_name;
     shape["shape_type"] = "rectangle";
     Json::Value points(Json::arrayValue);
     Json::Value p0(Json::arrayValue);
-    p0.append(d.x0);
-    p0.append(d.y0);
+    p0.append(r.x0);
+    p0.append(r.y0);
     points.append(p0);
     Json::Value p1(Json::arrayValue);
-    p1.append(d.x1);
-    p1.append(d.y1);
+    p1.append(r.x1);
+    p1.append(r.y1);
     points.append(p1);
     shape["points"] = points;
     shape["flags"] = Json::objectValue;
     root["shapes"].append(shape);
 
-    MNN::CV::rectangle(image, {d.x0, d.y0}, {d.x1, d.y1}, {0, 0, 180}, 2);
+    float x0 = static_cast<float>(r.x0);
+    float y0 = static_cast<float>(r.y0);
+    float x1 = static_cast<float>(r.x1);
+    float y1 = static_cast<float>(r.y1);
+    MNN::CV::rectangle(image, {x0, y0}, {x1, y1}, {0, 0, 180}, 2);
   }
 
   auto parent_path = fs::absolute(image_path).parent_path().string();
   auto stemname = fs::path(image_path).stem().string();
-  auto draw_path = parent_path + "/" + stemname + "_result.jpg";
+  auto draw_path = parent_path + "/" + stemname + "_det.jpg";
   auto json_path = parent_path + "/" + stemname + ".json";
 
   MNN::CV::imwrite(draw_path, image);
