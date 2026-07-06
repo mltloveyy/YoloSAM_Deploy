@@ -89,10 +89,10 @@ int main(int argc, char* argv[]) {
   std::string input_path = argv[2];
   std::string config_path = argv[3];
   float threshold = argc > 4 ? std::stof(argv[4]) : 0.2;
-  int forward_type = argc > 5 ? std::stoi(argv[5]) : 0;
+  int num_threads = argc > 5 ? std::stoi(argv[5]) : 2;
   int precision_mode = argc > 6 ? std::stoi(argv[6]) : 0;
 
-  Detector detector(model_path, ParseClassNames(config_path), forward_type, precision_mode);
+  Detector detector(model_path, ParseClassNames(config_path), num_threads, precision_mode);
 
   if (fs::is_directory(input_path)) {
     std::vector<std::string> image_paths;
@@ -111,6 +111,11 @@ int main(int argc, char* argv[]) {
       auto end = std::chrono::high_resolution_clock::now();
       auto latency = std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
       std::cout << "image " << i + 1 << "/" << image_num << " " << image_path << ", latency: " << latency << "ms" << std::endl;
+      for (const auto& r : result) {
+        if (r.confidence < threshold) continue;
+        std::cout << r.class_name << ": " << r.confidence << " (" << r.x0 << ", " << r.y0 << ", " << r.x1 << ", " << r.y1 << ")"
+                  << std::endl;
+      }
       VisualizeAndExport(image_path, result, threshold);
     }
   } else {
@@ -120,6 +125,11 @@ int main(int argc, char* argv[]) {
     auto latency = std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
 
     std::cout << "image " << input_path << ", latency: " << latency << "ms" << std::endl;
+    for (const auto& r : result) {
+      if (r.confidence < threshold) continue;
+      std::cout << r.class_name << ": " << r.confidence << " (" << r.x0 << ", " << r.y0 << ", " << r.x1 << ", " << r.y1 << ")"
+                << std::endl;
+    }
     VisualizeAndExport(input_path, result, threshold);
   }
 

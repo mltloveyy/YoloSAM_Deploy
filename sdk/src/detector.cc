@@ -80,8 +80,8 @@ std::vector<DetectionResult> Detector::Impl::process_image(const MNN::Express::V
 // Detector (public API)
 // ===========================================================================
 
-Detector::Detector(const std::string& model_path, const std::map<int, std::string>& class_names, int forward_type,
-                   int precision_mode, int num_threads, bool warmup)
+Detector::Detector(const std::string& model_path, const std::map<int, std::string>& class_names, int num_threads,
+                   int precision_mode, int forward_type, bool warmup)
     : pimpl_(std::make_unique<Impl>()) {
   pimpl_->forward_type = forward_type;
   pimpl_->precision_mode = precision_mode;

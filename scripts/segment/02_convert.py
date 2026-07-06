@@ -7,7 +7,7 @@ import onnx
 import onnxslim
 import torch
 import torch.nn.functional as F
-from ultralytics.models.sam.build import build_sam2_b
+from ultralytics.models.sam.build import build_sam2_b, build_sam2_s, build_sam2_t
 from ultralytics.models.sam.modules.sam import SAM2Model
 from ultralytics.utils import LOGGER, colorstr
 from ultralytics.utils.export.engine import best_onnx_opset
@@ -15,6 +15,8 @@ from ultralytics.utils.export.mnn import onnx2mnn
 from ultralytics.utils.files import file_size
 
 OPSET = best_onnx_opset(onnx)
+
+sam2_model_map = {"sam2.1_t.pt": build_sam2_t, "sam2.1_s.pt": build_sam2_s, "sam2.1_b.pt": build_sam2_b}
 
 
 def _embed_points_onnx(self, points: torch.Tensor, labels: torch.Tensor, pad: bool) -> torch.Tensor:
@@ -85,7 +87,7 @@ class Decoder(torch.nn.Module):
         return mask
 
 
-def export_encoder(model: Encoder, abspath_stem: str, half: bool, int8: bool):
+def export_encoder(model: Encoder, abspath_stem: str, quantize: int):
     LOGGER.info(f"\n{colorstr("ONNX:")} starting export with onnx {onnx.__version__} opset {OPSET}...")
     image = torch.randn(1, 3, 1024, 1024)
     # _ = model(image)
@@ -111,7 +113,7 @@ def export_encoder(model: Encoder, abspath_stem: str, half: bool, int8: bool):
     LOGGER.info(f"{colorstr("ONNX:")} export success ✅ {(t1 - t0):.1f}s, saved as '{onnx_path}' ({mb:.1f} MB)")
 
     mnn_path = abspath_stem + "_enc.mnn"
-    onnx2mnn(onnx_path, mnn_path, half, int8, "biz", colorstr("MNN:"))
+    onnx2mnn(onnx_path, mnn_path, quantize, "biz", colorstr("MNN:"))
     t2 = time.time()
     mb = file_size(mnn_path)
     assert mb > 0.0, "0.0 MB output model size"
@@ -120,7 +122,7 @@ def export_encoder(model: Encoder, abspath_stem: str, half: bool, int8: bool):
     return mnn_path
 
 
-def export_decoder(model: Decoder, abspath_stem: str, half: bool, int8: bool):
+def export_decoder(model: Decoder, abspath_stem: str, quantize: int):
     LOGGER.info(f"\n{colorstr("ONNX:")} starting export with onnx {onnx.__version__} opset {OPSET}...")
     point_coords = torch.rand((1, 6, 2))  # [1, num_points, 2]
     point_labels = torch.randint(4, (1, 6), dtype=torch.float)  # [1, num_points]
@@ -141,7 +143,13 @@ def export_decoder(model: Decoder, abspath_stem: str, half: bool, int8: bool):
         external_data=False,
         input_names=["point_coords", "point_labels", "image_embed", "high_res_feats_0", "high_res_feats_1"],
         output_names=["mask"],
-        dynamic_shapes={"point_coords": {1: num_points}, "point_labels": {1: num_points}},
+        dynamic_shapes={
+            "point_coords": {1: num_points},
+            "point_labels": {1: num_points},
+            "image_embed": None,
+            "high_res_feats_0": None,
+            "high_res_feats_1": None,
+        },
     )
     onnx_model = onnx.load(onnx_path)
     LOGGER.info(f"{colorstr("ONNX:")} slimming with onnxslim {onnxslim.__version__}...")
@@ -153,7 +161,7 @@ def export_decoder(model: Decoder, abspath_stem: str, half: bool, int8: bool):
     LOGGER.info(f"{colorstr("ONNX:")} export success ✅ {(t1 - t0):.1f}s, saved as '{onnx_path}' ({mb:.1f} MB)")
 
     mnn_path = abspath_stem + "_dec.mnn"
-    onnx2mnn(onnx_path, mnn_path, half, int8, "biz", colorstr("MNN:"))
+    onnx2mnn(onnx_path, mnn_path, quantize, "biz", colorstr("MNN:"))
     t2 = time.time()
     mb = file_size(mnn_path)
     assert mb > 0.0, "0.0 MB output model size"
@@ -165,15 +173,19 @@ def export_decoder(model: Decoder, abspath_stem: str, half: bool, int8: bool):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--model", type=str, default="models/sam2.1_b.pt", help="The model file for training")
-    parser.add_argument("--precision", type=str, default="fp32", help="Export precision. Options: fp32, fp16, int8")
+    parser.add_argument("--quantize", type=int, default=32, help="Export precision. e.g. 32(FP32), 16(FP16) or 8(INT8)")
     args = parser.parse_args()
 
-    half = True if args.precision == "fp16" else False
-    int8 = True if args.precision == "int8" else False
+    for k in sam2_model_map:
+        if str(args.model).endswith(k):
+            sam2_builder = sam2_model_map.get(k)
+    if not sam2_builder:
+        raise FileNotFoundError(f"{args.model} is not a supported model. Available models are: \n {sam2_model_map.keys()}")
+
     t0 = time.time()
-    model = build_sam2_b(args.model)
+    model = sam2_builder(args.model)
     abspath_stem = str(Path(args.model).with_suffix(""))
-    enc_path = export_encoder(Encoder(model).eval(), abspath_stem, half, int8)
-    dec_path = export_decoder(Decoder(model).eval(), abspath_stem, half, int8)
+    enc_path = export_encoder(Encoder(model).eval(), abspath_stem, args.quantize)
+    dec_path = export_decoder(Decoder(model).eval(), abspath_stem, args.quantize)
     t1 = time.time()
     print(f"\nExport complete ({(t1 - t0):.1f}s)\nResults saved to {Path(enc_path).absolute()}\n                 {Path(dec_path).absolute()}")

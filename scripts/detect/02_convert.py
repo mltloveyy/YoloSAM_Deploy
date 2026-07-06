@@ -1,14 +1,26 @@
 import argparse
+import time
 
 from ultralytics import YOLO
+from ultralytics.utils import LOGGER, colorstr
+from ultralytics.utils.export.mnn import onnx2mnn
+from ultralytics.utils.files import file_size
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--model", type=str, default="models/yolo26x_best.pt", help="The model file for training")
-    parser.add_argument("--precision", type=str, default="fp32", help="Export precision. Options: fp32, fp16, int8")
+    parser.add_argument("--quantize", type=int, default=32, help="Export precision. e.g. 32(FP32), 16(FP16) or 8(INT8)")
     args = parser.parse_args()
 
-    half = True if args.precision == "fp16" else False
-    int8 = True if args.precision == "int8" else False
     model = YOLO(args.model)
-    model.export(format="mnn", half=half, int8=int8, simplify=True)
+    if args.quantize == 8:
+        onnx_path = model.export(format="onnx", simplify=True)
+        mnn_path = onnx_path.replace("onnx", "mnn")
+        t0 = time.time()
+        onnx2mnn(onnx_path, mnn_path, args.quantize, "biz", colorstr("MNN:"))
+        t1 = time.time()
+        mb = file_size(mnn_path)
+        assert mb > 0.0, "0.0 MB output model size"
+        LOGGER.info(f"{colorstr("MNN:")} export success ✅ {(t1 - t0):.1f}s, saved as '{mnn_path}' ({mb:.1f} MB)")
+    else:
+        model.export(format="mnn", quantize=args.quantize, simplify=True)

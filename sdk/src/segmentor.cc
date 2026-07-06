@@ -108,8 +108,8 @@ SegmentResult Segmentor::Impl::decode(const std::vector<int>& point_coords, cons
 // Segmentor (public API)
 // ===========================================================================
 
-Segmentor::Segmentor(const std::string& enc_path, const std::string& dec_path, int forward_type, int precision_mode,
-                     int num_threads, bool warmup)
+Segmentor::Segmentor(const std::string& enc_path, const std::string& dec_path, int num_threads, int precision_mode,
+                     int forward_type, bool warmup)
     : pimpl_(std::make_unique<Impl>()) {
   pimpl_->forward_type = forward_type;
   pimpl_->precision_mode = precision_mode;

@@ -1,9 +1,10 @@
-torch==2.11.0  # --index-url https://download.pytorch.org/whl/cpu
+--extra-index-url https://download.pytorch.org/whl/cpu
+torch==2.11.0
 torchvision==0.26.0
-ultralytics~=8.4
+ultralytics==8.4.83
 onnx
+onnxruntime
 onnxslim
-mnn~=3.5
+onnxscript
+mnn==3.5.0
 aliyun-log-python-sdk
-beautifulsoup4
-pypinyin

@@ -1,6 +1,10 @@
 import os
 
-import pypinyin
+try:
+    import pypinyin
+except ImportError:
+    print("try 'pip install -U pypinyin'")
+    os.system("pip install -U pypinyin")
 
 
 def chinese_to_pinyin(text: str) -> str:

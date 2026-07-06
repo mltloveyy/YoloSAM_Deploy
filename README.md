@@ -19,26 +19,26 @@ pip install -r requirements.txt
 python scripts/detect/00_train.py --config data/config.yaml --model models/yolo26x.pt --model_type yolo26x.yaml --device 0
 
 # pt模型推理
-python scripts/detect/01_eval_yolo.py --model models/yolo26x.pt --input data/test.jpg
+python scripts/detect/01_eval.py --model models/yolo26x.pt --input data
 
-# 导出mnn模型
-python scripts/detect/02_convert_yolo.py --model models/yolo26x.pt
+# 导出mnn模型(fp16)
+python scripts/detect/02_convert.py --model models/yolo26x.pt --quantize 16
 
 # mnn模型推理
-python scripts/detect/03_mnn_eval_yolo.py --model models/yolo26x.mnn --input data/test.jpg --config data/config.yaml
+python scripts/detect/03_mnn_eval.py --model models/yolo26x.mnn --input data --config data/config.yaml
 ```
 
 #### 分割
 
 ```bash
 # pt模型推理
-python scripts/segment/01_eval_sam.py --model models/sam2.1_b.pt --image data/test.jpg --points 500 720 560 1070
+python scripts/segment/01_eval.py --model models/sam2.1_b.pt --image data/test.jpg --points 500 720 560 1070
 
-# 导出mnn模型
-python scripts/segment/02_convert_sam.py --model models/sam2.1_b.pt
+# 导出mnn模型(fp16)
+python scripts/segment/02_convert.py --model models/sam2.1_b.pt --quantize 16
 
 # mnn模型推理
-python scripts/segment/03_mnn_eval_sam.py --enc models/sam2.1_b_enc.mnn --dec models/sam2.1_b_dec.mnn --image data/test.jpg --points 500 720 560 1070
+python scripts/segment/03_mnn_eval.py --enc models/sam2.1_b_enc.mnn --dec models/sam2.1_b_dec.mnn --image data/test.jpg --points 500 720 560 1070
 ```
 
 #### 其他
@@ -51,6 +51,6 @@ python scripts/data_process/crawl.py 老虎钳 --num 50 --output data/downloads
 python scripts/annotation.py --model models/sam2.1_b.pt --image data/test.jpg
 ```
 
----
+## C++推理
 
-- [C++指南](sdk/README.md)
+[C++指南](sdk/README.md)

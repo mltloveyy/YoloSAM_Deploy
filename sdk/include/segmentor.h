@@ -20,8 +20,8 @@ struct SegmentResult {
 // ---------------------------------------------------------------------------
 class INTERFACE_API Segmentor {
  public:
-  Segmentor(const std::string& enc_path, const std::string& dec_path, int forward_type = 0, int precision_mode = 0,
-            int num_threads = 4, bool warmup = false);
+  Segmentor(const std::string& enc_path, const std::string& dec_path, int num_threads = 2, int precision_mode = 0,
+            int forward_type = 0, bool warmup = false);
   ~Segmentor();
 
   Segmentor(const Segmentor&) = delete;

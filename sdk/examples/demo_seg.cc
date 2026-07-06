@@ -65,10 +65,10 @@ int main(int argc, char* argv[]) {
   std::string image_path = argv[3];
   auto coords = parseIntVec(argv[4]);
   auto labels = parseIntVec(argv[5]);
-  int forward_type = argc > 6 ? std::stoi(argv[6]) : 0;
+  int num_threads = argc > 6 ? std::stoi(argv[6]) : 2;
   int precision_mode = argc > 7 ? std::stoi(argv[7]) : 0;
 
-  Segmentor segmentor(enc_path, dec_path, forward_type, precision_mode);
+  Segmentor segmentor(enc_path, dec_path, num_threads, precision_mode);
 
   auto t0 = std::chrono::high_resolution_clock::now();
   segmentor.set_image(image_path);
@@ -78,7 +78,7 @@ int main(int argc, char* argv[]) {
   auto enc_duration = std::chrono::duration_cast<std::chrono::milliseconds>(t1 - t0).count();
   auto dec_duration = std::chrono::duration_cast<std::chrono::milliseconds>(t2 - t1).count();
   std::cout << "image " << image_path << ", latency: " << enc_duration << "ms(encode) + " << dec_duration << "ms(decode)"
-            << std::endl;
+            << " bbox: (" << result.x0 << ", " << result.y0 << ", " << result.x1 << ", " << result.y1 << ")" << std::endl;
 
   Visualize(image_path, result, coords, labels);
 

@@ -5,9 +5,20 @@ import random
 import time
 from urllib.parse import quote
 
-import pypinyin
 import requests
-from bs4 import BeautifulSoup
+
+try:
+    import pypinyin
+except ImportError:
+    print("try 'pip install -U pypinyin'")
+    os.system("pip install -U pypinyin")
+
+try:
+    from bs4 import BeautifulSoup
+except ImportError:
+    print("try 'pip install -U beautifulsoup4'")
+    os.system("pip install -U beautifulsoup4")
+
 
 # ---------- 配置常量 ----------
 HEADERS = {

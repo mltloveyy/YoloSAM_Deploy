@@ -51,9 +51,9 @@ if __name__ == "__main__":
     parser.add_argument("--input", type=str, default="data", help="The data source for inference")
     parser.add_argument("--config", type=str, default="data/config.yaml", help="The configuration file")
     parser.add_argument("--imgsz", type=int, default=640, help="Target image size for inference")
-    parser.add_argument("--precision", type=str, default="normal", help="inference precision: normal, low, high, lowBF")
-    parser.add_argument("--backend", type=str, default="CPU", help="inference backend: CPU, OPENCL, OPENGL, NN, VULKAN, METAL, TRT, CUDA, HIAI")
-    parser.add_argument("--thread", type=int, default=4, help="inference using thread: int")
+    parser.add_argument("--thread", type=int, default=2, help="inference using thread")
+    parser.add_argument("--precision", type=int, default=0, help="inference precision: 0(normal), high, low, low_bf16")
+    parser.add_argument("--backend", type=int, default=0, help="inference backend: 0(CPU), METAL, CUDA, OPENCL, AUTO, NN, OPENGL, VULKAN")
     args = parser.parse_args()
 
     # Collect all image paths
@@ -68,8 +68,8 @@ if __name__ == "__main__":
     names_dict = data["names"]
 
     # Load model
-    rt = MNN.nn.create_runtime_manager(({"precision": args.precision, "backend": args.backend, "numThread": args.thread},))
-    net = MNN.nn.load_module_from_file(args.model, [], [], runtime_manager=rt)
+    rt = MNN.nn.create_runtime_manager(({"numThread": args.thread, "precision": args.precision, "backend": args.backend},))
+    net = MNN.nn.load_module_from_file(args.model, [], [], runtime_manager=rt, shape_mutable=False)
 
     # Warmup infernece
     dummy_input = np.zeros((1, 3, args.imgsz, args.imgsz))

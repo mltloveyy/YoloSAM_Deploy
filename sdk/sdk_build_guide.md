@@ -36,7 +36,7 @@ cmake添加`-DBUILD_DEMO=ON`选项重新构建编译，得到可执行文件`DET
 
 ```bash
 export LD_LIBRARY_PATH=./sdk/bin/x86:$LD_LIBRARY_PATH
-./sdk/bin/x86/DETECT models/yolo26x.mnn data/test.jpg data/config.yaml
+./sdk/bin/x86/DETECT models/yolo26x_best.mnn data/test.jpg data/config.yaml
 ./sdk/bin/x86/SEGMENT models/sam2.1_b_enc.mnn models/sam2.1_b_dec.mnn data/test.jpg 500,720,560,1070 1,1
 ```
 
@@ -47,6 +47,11 @@ export LD_LIBRARY_PATH=./sdk/bin/x86:$LD_LIBRARY_PATH
 1. 下载[NDK](https://developer.android.google.cn/ndk/downloads?hl=zh-cn)，解压到`/path/to/android-ndk`
 
 2. 在`.bashrc`或者`.bash_profile`中设置NDK环境变量，例如：`export ANDROID_NDK=/path/to/android-ndk`
+
+3. 复制C++动态库到依赖库目录
+    ```bash
+    cp ${/path/to/android-ndk}/toolchains/llvm/prebuilt/linux-x86_64/sysroot/usr/lib/aarch64-linux-android/libc++_shared.so sdk/lib/android/
+    ```
 
 ### 依赖库
 
@@ -127,39 +132,36 @@ make -j8
 
 2. 下载安装Win版ADB工具(模拟器or官方工具)
    
-   - `模拟器`: 下载安装[雷电模拟器](https://www.ldmnq.com/)，ADB路径为`${模拟器安装路径}\adb.exe`，默认路径为`C:\leidian\LDPlayer9\adb.exe`
+   - `模拟器`: 下载安装[雷电模拟器](https://www.ldmnq.com/)，ADB路径为`${模拟器安装路径}\adb.exe`
    
    - `官方工具`: 下载[Platform-Tools](https://googledownloads.cn/android/repository/platform-tools-latest-windows.zip)并解压，ADB路径为`${platform-tools}\adb.exe`
 
-3. 推送文件到模拟器(以模拟器的ADB为例)
+3. 推送文件到模拟器(以官方ADB为例)
 
     打开雷电模拟器，菜单->软件设置->其他，打开ROOT权限，ADB调试选择"开启本地连接"，保存并重启模拟器
 
+    > 手机端运行: 手机连接PC，选择"USB文件传输模式"，设置->开发者选项，打开"USB调试"
+
     ```powershell
     # 列出已连接设备
-    C:\leidian\LDPlayer14\adb.exe devices
+    D:\WorkSpace\platform-tools\adb.exe devices
     # List of devices attached
     # emulator-5554   device
 
-    # 推送Demo文件到模拟器/data/local/tmp/目录下
-    Get-ChildItem "sdk\bin\android\*" | ForEach-Object { C:\leidian\LDPlayer14\adb.exe push $_.FullName /data/local/tmp/ }
-
-    # 推送libc++_shared.so到模拟器/data/local/tmp/目录下
-    C:\leidian\LDPlayer14\adb.exe push ${/path/to/android-ndk}\toolchains\llvm\prebuilt\linux-x86_64\sysroot\usr\lib\aarch64-linux-android\libc++_shared.so /data/local/tmp/
+    # 推送Demo文件到设备/data/local/tmp/目录下
+    Get-ChildItem "sdk\bin\android\*" | ForEach-Object { D:\WorkSpace\platform-tools\adb.exe push $_.FullName /data/local/tmp/ }
 
     # 推送模型、配置文件和测试图片到模拟器/data/local/tmp/目录下
-    C:\leidian\LDPlayer14\adb.exe push models\yolo26x.mnn /data/local/tmp/
-    C:\leidian\LDPlayer14\adb.exe push models\sam2.1_b_enc.mnn /data/local/tmp/
-    C:\leidian\LDPlayer14\adb.exe push models\sam2.1_b_dec.mnn /data/local/tmp/
-    C:\leidian\LDPlayer14\adb.exe push data\config.yaml /data/local/tmp/
-    C:\leidian\LDPlayer14\adb.exe push data\test.jpg /data/local/tmp/
+    Get-ChildItem "models\*.mnn" | ForEach-Object { D:\WorkSpace\platform-tools\adb.exe push $_.FullName /data/local/tmp/ }
+    D:\WorkSpace\platform-tools\adb.exe push data\config.yaml /data/local/tmp/
+    D:\WorkSpace\platform-tools\adb.exe push data\test.jpg /data/local/tmp/
     ```
 
 4. 运行Demo
 
     ```bash
-    # 进入模拟器
-    PS C:\leidian\LDPlayer14\adb.exe shell
+    # 进入设备
+    PS D:\WorkSpace\platform-tools\adb.exe shell
 
     # 设置执行权限
     cd /data/local/tmp
@@ -169,10 +171,10 @@ make -j8
     export LD_LIBRARY_PATH=.:$LD_LIBRARY_PATH
 
     # 运行
-    ./DETECT yolo26x.mnn test.jpg config.yaml
+    ./DETECT yolo26x_best.mnn test.jpg config.yaml
     ./SEGMENT sam2.1_b_enc.mnn sam2.1_b_dec.mnn test.jpg 500,720,560,1070 1,1
 
     # 拉取结果
-    PS C:\leidian\LDPlayer14\adb.exe pull /data/local/tmp/test_det.jpg .\data\
-    PS C:\leidian\LDPlayer14\adb.exe pull /data/local/tmp/test_seg.jpg .\data\
+    PS D:\WorkSpace\platform-tools\adb.exe pull /data/local/tmp/test_det.jpg .\data\
+    PS D:\WorkSpace\platform-tools\adb.exe pull /data/local/tmp/test_seg.jpg .\data\
     ```

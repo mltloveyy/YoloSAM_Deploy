@@ -45,6 +45,12 @@ add_custom_command(TARGET algorithm POST_BUILD
     COMMAND ${CMAKE_COMMAND} -E copy_if_different ${MNN_LIBS} $<TARGET_FILE_DIR:algorithm>
 )
 
+if(BUILD_FOR_ANDROID)
+    add_custom_command(TARGET algorithm POST_BUILD 
+        COMMAND ${CMAKE_COMMAND} -E copy_if_different ${LIB_DIR}/libc++_shared.so $<TARGET_FILE_DIR:algorithm>
+    )
+endif()
+
 # Executable
 if(BUILD_DEMO)
     add_executable(DETECT examples/demo_det.cc)
@@ -55,7 +61,7 @@ if(BUILD_DEMO)
         target_include_directories(DETECT PRIVATE ${3RD_PARTY_DIR}/jsoncpp/include ${3RD_PARTY_DIR}/yaml-cpp/include)
         target_link_libraries(DETECT PRIVATE ${LIB_DIR}/libjsoncpp.so ${LIB_DIR}/libyaml-cpp.so)
         add_custom_command(TARGET DETECT POST_BUILD 
-            COMMAND ${CMAKE_COMMAND} -E copy_if_different ${LIB_DIR}/libjsoncpp.so ${LIB_DIR}/libyaml-cpp.so $<TARGET_FILE_DIR:DETECTOR>
+            COMMAND ${CMAKE_COMMAND} -E copy_if_different ${LIB_DIR}/libjsoncpp.so ${LIB_DIR}/libyaml-cpp.so $<TARGET_FILE_DIR:DETECT>
         )
     else()
         find_package(jsoncpp REQUIRED)
