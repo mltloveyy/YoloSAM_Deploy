@@ -8,7 +8,12 @@
 
 ## 集成
 
-- 复制动态库`libalgorithm.so,libMNN.so,libMNN_Express.so,libMNNOpenCV.so`到`app/src/main/jniLibs/arm64-v8a/`
+- 复制第三方和编译得到的动态库到`app/src/main/jniLibs/arm64-v8a/`
+  - libalgorithm.so
+  - libMNN.so
+  - libMNN_Express.so
+  - libMNNOpenCV.so
+  - libc++_shared.so
 
 - 在Java代码中加载动态库:
   
@@ -38,7 +43,7 @@ public class Detector {
     }
 
     // 加载模型并初始化
-    public native boolean init(String modelPath, int[] classIds, String[] classNames, int forwardType, int precisionMode, int numThreads);
+    public native boolean init(String modelPath, int[] classIds, String[] classNames, int numThreads, int precisionMode, int forwardType, boolean warmUp);
 
     // 检测图片
     public native Detection[] detect(String imagePath);
@@ -55,7 +60,7 @@ public class Segmentor {
     }
 
     // 加载模型并初始化
-    public native boolean init(String encModelPath, String decModelPath, int forwardType, int precisionMode, int numThreads);
+    public native boolean init(String encModelPath, String decModelPath, int numThreads, int precisionMode, int forwardType, boolean warmUp);
 
     // 加载图片
     public native void load(String imagePath);
@@ -94,7 +99,7 @@ public class Segmentor {
 #### 1. `init`
 
 ```java
-boolean init(String modelPath, int[] classIds, String[] classNames, int forwardType, int precisionMode, int numThreads)
+boolean init(String modelPath, int[] classIds, String[] classNames, int numThreads, int precisionMode, int forwardType, boolean warmUp)
 ```
 
 | 参数            | 类型       | 说明                                                                             |
@@ -102,9 +107,10 @@ boolean init(String modelPath, int[] classIds, String[] classNames, int forwardT
 | modelPath     | String   | mnn检测模型文件路径                                                                    |
 | classIds      | int[]    | 类别ID数组，需与模型的类别ID一致，如{0, 1, 2}，参考`data/config.yaml` |
 | classNames    | String[] | 类别名称数组，与classIds顺序对应，如{"xiezuiqian", "jianzuiqian", "laohuqian"}               |
-| forwardType   | int      | 推理后端类型                                                                         |
-| precisionMode | int      | 精度模式                                                                           |
 | numThreads    | int      | CPU线程数                                                                         |
+| precisionMode | int      | 精度模式                                                                           |
+| forwardType   | int      | 推理后端类型                                                                         |
+| warmUp        | boolean  | 是否预热模型                                                                         |
 | **return**    | boolean  | true表示初始化成功，false失败(如模型文件不存在、配置错误)                                             |
 
 #### 2. `detect`
@@ -127,16 +133,17 @@ Detection[] detect(String imagePath)
 #### 1. `init`
 
 ```java
-boolean init(String encModelPath, String decModelPath, int forwardType, int precisionMode, int numThreads)
+boolean init(String encModelPath, String decModelPath, int numThreads, int precisionMode, int forwardType, boolean warmUp)
 ```
 
 | 参数            | 类型      | 说明                                 |
 | ------------- | ------- | ---------------------------------- |
 | encModelPath  | String  | mnn编码模型文件路径                        |
 | decModelPath  | String  | mnn解码模型文件路径                        |
-| forwardType   | int     | 推理后端类型                             |
-| precisionMode | int     | 精度模式                               |
 | numThreads    | int     | CPU线程数                             |
+| precisionMode | int     | 精度模式                               |
+| forwardType   | int     | 推理后端类型                             |
+| warmUp        | boolean | 是否预热模型                             |
 | **return**    | boolean | true表示初始化成功，false失败(如模型文件不存在、配置错误) |
 
 #### 2. `load`
