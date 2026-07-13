@@ -88,11 +88,11 @@ class Decoder(torch.nn.Module):
 
 
 def export_encoder(model: Encoder, abspath_stem: str, quantize: int):
-    LOGGER.info(f"\n{colorstr("ONNX:")} starting export with onnx {onnx.__version__} opset {OPSET}...")
     image = torch.randn(1, 3, 1024, 1024)
     # _ = model(image)
 
     onnx_path = abspath_stem + "_enc.onnx"
+    LOGGER.info(f"\n{colorstr("ONNX:")} starting export with onnx {onnx.__version__} opset {OPSET}...")
     t0 = time.time()
     torch.onnx.export(
         model,
@@ -112,18 +112,18 @@ def export_encoder(model: Encoder, abspath_stem: str, quantize: int):
     assert mb > 0.0, "0.0 MB output model size"
     LOGGER.info(f"{colorstr("ONNX:")} export success ✅ {(t1 - t0):.1f}s, saved as '{onnx_path}' ({mb:.1f} MB)")
 
+    t2 = time.time()
     mnn_path = abspath_stem + "_enc.mnn"
     onnx2mnn(onnx_path, mnn_path, quantize, "biz", colorstr("MNN:"))
-    t2 = time.time()
+    t3 = time.time()
     mb = file_size(mnn_path)
     assert mb > 0.0, "0.0 MB output model size"
-    LOGGER.info(f"{colorstr("MNN:")} export success ✅ {(t2 - t1):.1f}s, saved as '{mnn_path}' ({mb:.1f} MB)")
+    LOGGER.info(f"{colorstr("MNN:")} export success ✅ {(t3 - t2):.1f}s, saved as '{mnn_path}' ({mb:.1f} MB)")
 
     return mnn_path
 
 
 def export_decoder(model: Decoder, abspath_stem: str, quantize: int):
-    LOGGER.info(f"\n{colorstr("ONNX:")} starting export with onnx {onnx.__version__} opset {OPSET}...")
     point_coords = torch.rand((1, 6, 2))  # [1, num_points, 2]
     point_labels = torch.randint(4, (1, 6), dtype=torch.float)  # [1, num_points]
     image_embed = torch.randn((1, 256, 64, 64))
@@ -133,6 +133,7 @@ def export_decoder(model: Decoder, abspath_stem: str, quantize: int):
     model.prompt_encoder._embed_points = types.MethodType(_embed_points_onnx, model.prompt_encoder)
 
     onnx_path = abspath_stem + "_dec.onnx"
+    LOGGER.info(f"\n{colorstr("ONNX:")} starting export with onnx {onnx.__version__} opset {OPSET}...")
     t0 = time.time()
     num_points = torch.export.Dim("num_points", min=1, max=8)
     torch.onnx.export(
@@ -160,12 +161,13 @@ def export_decoder(model: Decoder, abspath_stem: str, quantize: int):
     assert mb > 0.0, "0.0 MB output model size"
     LOGGER.info(f"{colorstr("ONNX:")} export success ✅ {(t1 - t0):.1f}s, saved as '{onnx_path}' ({mb:.1f} MB)")
 
+    t2 = time.time()
     mnn_path = abspath_stem + "_dec.mnn"
     onnx2mnn(onnx_path, mnn_path, quantize, "biz", colorstr("MNN:"))
-    t2 = time.time()
+    t3 = time.time()
     mb = file_size(mnn_path)
     assert mb > 0.0, "0.0 MB output model size"
-    LOGGER.info(f"{colorstr("MNN:")} export success ✅ {(t2 - t1):.1f}s, saved as '{mnn_path}' ({mb:.1f} MB)")
+    LOGGER.info(f"{colorstr("MNN:")} export success ✅ {(t3 - t2):.1f}s, saved as '{mnn_path}' ({mb:.1f} MB)")
 
     return mnn_path
 

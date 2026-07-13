@@ -18,7 +18,7 @@ std::vector<int> parseIntVec(std::string s) {
   return res;
 }
 
-void Visualize(const std::string& image_path, const SegmentResult& result, const std::vector<int>& coords,
+void Visualize(const std::string& image_path, const SegmentationResult& result, const std::vector<int>& coords,
                const std::vector<int>& labels) {
   auto image = MNN::CV::imread(image_path);
 
@@ -56,7 +56,10 @@ void Visualize(const std::string& image_path, const SegmentResult& result, const
 
 int main(int argc, char* argv[]) {
   if (argc < 6) {
-    std::cerr << "Usage: " << argv[0] << " <enc_path> <dec_path> <input_image> <coords> <labels>\n";
+    std::cerr << "Usage: " << argv[0]
+              << " enc_path dec_path image_path coords labels [loop_count] [enc_warmup] [enc_forward_type] [enc_num_threads] "
+                 "[enc_precision_mode] [enc_memory_mode]"
+              << std::endl;
     return -1;
   }
 
@@ -65,22 +68,41 @@ int main(int argc, char* argv[]) {
   std::string image_path = argv[3];
   auto coords = parseIntVec(argv[4]);
   auto labels = parseIntVec(argv[5]);
-  int num_threads = argc > 6 ? std::stoi(argv[6]) : 2;
-  int precision_mode = argc > 7 ? std::stoi(argv[7]) : 0;
+  int loop_count = argc > 6 ? std::stoi(argv[6]) : 5;
+  int warmup = argc > 7 ? std::stoi(argv[7]) : 0;
+  int forward_type = argc > 8 ? std::stoi(argv[8]) : 0;  // MNN_FORWARD_CPU
+  int num_threads = argc > 9 ? std::stoi(argv[9]) : 1;
+  int precision_mode = argc > 10 ? std::stoi(argv[10]) : 0;  // Precision_Normal
+  int memory_mode = argc > 11 ? std::stoi(argv[11]) : 0;     // Memory_Normal
 
-  Segmentor segmentor(enc_path, dec_path, num_threads, precision_mode);
+  SegmentorConfig enc_cfg, dec_cfg;
+  enc_cfg.model_path = enc_path;
+  enc_cfg.forward_type = forward_type;
+  enc_cfg.num_threads = num_threads;
+  enc_cfg.precision_mode = precision_mode;
+  enc_cfg.memory_mode = memory_mode;
+  enc_cfg.warmup = warmup;
+  dec_cfg.model_path = dec_path;
+  dec_cfg.forward_type = 0;  // MNN_FORWARD_CPU
+  dec_cfg.num_threads = 1;
+  dec_cfg.precision_mode = 2;  // Precision_Low
+  dec_cfg.memory_mode = 0;     // Memory_Normal
+  dec_cfg.warmup = 0;
+  Segmentor segmentor(enc_cfg, dec_cfg);
 
-  auto t0 = std::chrono::high_resolution_clock::now();
-  segmentor.set_image(image_path);
-  auto t1 = std::chrono::high_resolution_clock::now();
-  auto result = segmentor.forward(coords, labels);
-  auto t2 = std::chrono::high_resolution_clock::now();
-  auto enc_duration = std::chrono::duration_cast<std::chrono::milliseconds>(t1 - t0).count();
-  auto dec_duration = std::chrono::duration_cast<std::chrono::milliseconds>(t2 - t1).count();
-  std::cout << "image " << image_path << ", latency: " << enc_duration << "ms(encode) + " << dec_duration << "ms(decode)"
-            << " bbox: (" << result.x0 << ", " << result.y0 << ", " << result.x1 << ", " << result.y1 << ")" << std::endl;
+  for (int i = 0; i < loop_count; ++i) {
+    auto t0 = std::chrono::high_resolution_clock::now();
+    segmentor.set_image(image_path);
+    auto t1 = std::chrono::high_resolution_clock::now();
+    auto result = segmentor.forward(coords, labels);
+    auto t2 = std::chrono::high_resolution_clock::now();
+    auto enc_duration = std::chrono::duration_cast<std::chrono::milliseconds>(t1 - t0).count();
+    auto dec_duration = std::chrono::duration_cast<std::chrono::milliseconds>(t2 - t1).count();
+    std::cout << "image " << image_path << ", latency: " << enc_duration << "ms(encode) + " << dec_duration << "ms(decode)"
+              << " bbox: (" << result.x0 << ", " << result.y0 << ", " << result.x1 << ", " << result.y1 << ")" << std::endl;
 
-  Visualize(image_path, result, coords, labels);
+    // Visualize(image_path, result, coords, labels);
+  }
 
   return 0;
 }

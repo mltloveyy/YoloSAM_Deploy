@@ -13,9 +13,6 @@
 struct Detector::Impl {
   std::shared_ptr<MNN::Express::Module> net;
   std::shared_ptr<MNN::Express::Executor::RuntimeManager> rtmgr;
-  int forward_type;
-  int precision_mode;
-  int num_threads;
   std::map<int, std::string> class_names;
   static constexpr int TARGET_SIZE = 640;
 
@@ -80,21 +77,20 @@ std::vector<DetectionResult> Detector::Impl::process_image(const MNN::Express::V
 // Detector (public API)
 // ===========================================================================
 
-Detector::Detector(const std::string& model_path, const std::map<int, std::string>& class_names, int num_threads,
-                   int precision_mode, int forward_type, bool warmup)
-    : pimpl_(std::make_unique<Impl>()) {
-  pimpl_->forward_type = forward_type;
-  pimpl_->precision_mode = precision_mode;
-  pimpl_->num_threads = num_threads;
-  pimpl_->class_names = class_names;
+Detector::Detector(const DetectorConfig& config) : pimpl_(std::make_unique<Impl>()) {
+  pimpl_->class_names = config.class_names;
 
   MNN::ScheduleConfig scheduleConfig;
-  scheduleConfig.type = static_cast<MNNForwardType>(forward_type);
-  scheduleConfig.numThread = num_threads;
+  scheduleConfig.type = static_cast<MNNForwardType>(config.forward_type);
+  scheduleConfig.numThread = config.num_threads;
 
   MNN::BackendConfig backendConfig;
-  backendConfig.precision = static_cast<MNN::BackendConfig::PrecisionMode>(precision_mode);
+  backendConfig.precision = static_cast<MNN::BackendConfig::PrecisionMode>(config.precision_mode);
+  backendConfig.memory = static_cast<MNN::BackendConfig::MemoryMode>(config.memory_mode);
   scheduleConfig.backendConfig = &backendConfig;
+
+  MNN::Express::Module::Config moduleConfig;
+  moduleConfig.shapeMutable = false;
 
   pimpl_->rtmgr = std::shared_ptr<MNN::Express::Executor::RuntimeManager>(
       MNN::Express::Executor::RuntimeManager::createRuntimeManager(scheduleConfig));
@@ -102,18 +98,20 @@ Detector::Detector(const std::string& model_path, const std::map<int, std::strin
     MNN_ERROR("Empty RuntimeManger\n");
     return;
   }
+  pimpl_->rtmgr->setCache(".det_cache");
 
-  pimpl_->net = std::shared_ptr<MNN::Express::Module>(MNN::Express::Module::load({}, {}, model_path.c_str(), pimpl_->rtmgr));
+  pimpl_->net = std::shared_ptr<MNN::Express::Module>(
+      MNN::Express::Module::load({}, {}, config.model_path.c_str(), pimpl_->rtmgr, &moduleConfig));
   if (!pimpl_->net) {
-    MNN_ERROR("Failed to load model: %s\n", model_path.c_str());
+    MNN_ERROR("Failed to load model: %s\n", config.model_path.c_str());
     return;
   }
 
   // Warmup
-  if (warmup) {
+  if (config.warmup > 0) {
     MNN_PRINT("Starting Warmup...\n");
     auto dummy_input = MNN::Express::_Const(0.0f, {1, 3, Impl::TARGET_SIZE, Impl::TARGET_SIZE}, MNN::Express::NCHW);
-    for (int i = 0; i < 3; ++i) {
+    for (int i = 0; i < config.warmup; ++i) {
       pimpl_->net->onForward({dummy_input});
     }
     MNN_PRINT("Warmup finished.\n");

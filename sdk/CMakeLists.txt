@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.10)
 project(MNN_INFERENCE)
 
 option(BUILD_FOR_ANDROID "Build for Android platform" OFF)
-option(BUILD_DEMO "Build demo/exec or not" OFF)
+option(BUILD_DEMO "Build example/demo* or not" OFF)
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -30,7 +30,6 @@ if(BUILD_FOR_ANDROID)
 else()
     set(LIB_DIR ${CMAKE_CURRENT_SOURCE_DIR}/lib/x86)
 endif()
-set(MNN_LIBS ${LIB_DIR}/libMNN_Express.so ${LIB_DIR}/libMNNOpenCV.so ${LIB_DIR}/libMNN.so)
 
 # Library
 add_library(algorithm SHARED src/detector.cc src/segmentor.cc)
@@ -39,10 +38,10 @@ target_include_directories(algorithm
     PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include> 
            $<INSTALL_INTERFACE:include>
 )
-target_link_libraries(algorithm PUBLIC ${MNN_LIBS})
+target_link_libraries(algorithm PUBLIC ${LIB_DIR}/libMNN.so)
 
 add_custom_command(TARGET algorithm POST_BUILD 
-    COMMAND ${CMAKE_COMMAND} -E copy_if_different ${MNN_LIBS} $<TARGET_FILE_DIR:algorithm>
+    COMMAND ${CMAKE_COMMAND} -E copy_if_different ${LIB_DIR}/libMNN.so $<TARGET_FILE_DIR:algorithm>
 )
 
 if(BUILD_FOR_ANDROID)

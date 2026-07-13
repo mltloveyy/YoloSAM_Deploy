@@ -10,6 +10,16 @@
 #include <string>
 #include <vector>
 
+struct DetectorConfig {
+  std::string model_path;
+  std::map<int, std::string> class_names;
+  int forward_type = 0;
+  int num_threads = 1;
+  int precision_mode = 0;
+  int memory_mode = 0;
+  int warmup = 0;
+};
+
 struct DetectionResult {
   int x0, y0, x1, y1;
   int class_id;
@@ -22,8 +32,7 @@ struct DetectionResult {
 // ---------------------------------------------------------------------------
 class INTERFACE_API Detector {
  public:
-  Detector(const std::string& model_path, const std::map<int, std::string>& class_names, int num_threads = 2,
-           int precision_mode = 0, int forward_type = 0, bool warmup = false);
+  Detector(const DetectorConfig& config);
   ~Detector();
 
   Detector(const Detector&) = delete;

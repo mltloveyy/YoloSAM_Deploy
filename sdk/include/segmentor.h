@@ -10,7 +10,16 @@
 #include <string>
 #include <vector>
 
-struct SegmentResult {
+struct SegmentorConfig {
+  std::string model_path;
+  int forward_type = 0;
+  int num_threads = 1;
+  int precision_mode = 0;
+  int memory_mode = 0;
+  int warmup = 0;
+};
+
+struct SegmentationResult {
   int x0, y0, x1, y1;
   std::vector<int> points;
 };
@@ -20,8 +29,7 @@ struct SegmentResult {
 // ---------------------------------------------------------------------------
 class INTERFACE_API Segmentor {
  public:
-  Segmentor(const std::string& enc_path, const std::string& dec_path, int num_threads = 2, int precision_mode = 0,
-            int forward_type = 0, bool warmup = false);
+  Segmentor(const SegmentorConfig& enc_config, const SegmentorConfig& dec_config);
   ~Segmentor();
 
   Segmentor(const Segmentor&) = delete;
@@ -30,7 +38,7 @@ class INTERFACE_API Segmentor {
   Segmentor& operator=(Segmentor&&) noexcept;
 
   void set_image(const std::string& image_path);
-  SegmentResult forward(const std::vector<int>& point_coords, const std::vector<int>& point_labels);
+  SegmentationResult forward(const std::vector<int>& point_coords, const std::vector<int>& point_labels);
 
  private:
   struct Impl;

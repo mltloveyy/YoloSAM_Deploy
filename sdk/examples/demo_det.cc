@@ -81,7 +81,10 @@ void VisualizeAndExport(const std::string& image_path, const std::vector<Detecti
 
 int main(int argc, char* argv[]) {
   if (argc < 4) {
-    std::cerr << "Usage: " << argv[0] << " <model_path> <input_image_or_dir> <config_path>\n";
+    std::cerr << "Usage: " << argv[0]
+              << " model_path image_or_dir_path config_path [threshold] [loop_count] [warmup] [forward_type] [num_threads] "
+                 "[precision_mode]"
+              << std::endl;
     return -1;
   }
 
@@ -89,10 +92,23 @@ int main(int argc, char* argv[]) {
   std::string input_path = argv[2];
   std::string config_path = argv[3];
   float threshold = argc > 4 ? std::stof(argv[4]) : 0.2;
-  int num_threads = argc > 5 ? std::stoi(argv[5]) : 2;
-  int precision_mode = argc > 6 ? std::stoi(argv[6]) : 0;
+  int loop_count = argc > 5 ? std::stoi(argv[5]) : 5;
+  int warmup = argc > 6 ? std::stoi(argv[6]) : 0;
+  int forward_type = argc > 7 ? std::stoi(argv[7]) : 0;  // MNN_FORWARD_CPU
+  int num_threads = argc > 8 ? std::stoi(argv[8]) : 1;
+  int precision_mode = argc > 9 ? std::stoi(argv[9]) : 0;  // Precision_Normal
+  int memory_mode = argc > 10 ? std::stoi(argv[10]) : 0;   // Memory_Normal
 
-  Detector detector(model_path, ParseClassNames(config_path), num_threads, precision_mode);
+  auto class_names = ParseClassNames(config_path);
+  DetectorConfig cfg;
+  cfg.model_path = model_path;
+  cfg.class_names = class_names;
+  cfg.forward_type = forward_type;
+  cfg.num_threads = num_threads;
+  cfg.precision_mode = precision_mode;
+  cfg.memory_mode = memory_mode;
+  cfg.warmup = warmup;
+  Detector detector(cfg);
 
   if (fs::is_directory(input_path)) {
     std::vector<std::string> image_paths;
@@ -116,21 +132,22 @@ int main(int argc, char* argv[]) {
         std::cout << r.class_name << ": " << r.confidence << " (" << r.x0 << ", " << r.y0 << ", " << r.x1 << ", " << r.y1 << ")"
                   << std::endl;
       }
-      VisualizeAndExport(image_path, result, threshold);
+      // VisualizeAndExport(image_path, result, threshold);
     }
   } else {
-    auto start = std::chrono::high_resolution_clock::now();
-    auto result = detector.run(input_path);
-    auto end = std::chrono::high_resolution_clock::now();
-    auto latency = std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
-
-    std::cout << "image " << input_path << ", latency: " << latency << "ms" << std::endl;
-    for (const auto& r : result) {
-      if (r.confidence < threshold) continue;
-      std::cout << r.class_name << ": " << r.confidence << " (" << r.x0 << ", " << r.y0 << ", " << r.x1 << ", " << r.y1 << ")"
-                << std::endl;
+    for (int i = 0; i < loop_count; ++i) {
+      auto start = std::chrono::high_resolution_clock::now();
+      auto result = detector.run(input_path);
+      auto end = std::chrono::high_resolution_clock::now();
+      auto latency = std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
+      std::cout << "image " << input_path << ", latency: " << latency << "ms" << std::endl;
+      for (const auto& r : result) {
+        if (r.confidence < threshold) continue;
+        std::cout << r.class_name << ": " << r.confidence << " (" << r.x0 << ", " << r.y0 << ", " << r.x1 << ", " << r.y1 << ")"
+                  << std::endl;
+      }
+      // VisualizeAndExport(input_path, result, threshold);
     }
-    VisualizeAndExport(input_path, result, threshold);
   }
 
   return 0;

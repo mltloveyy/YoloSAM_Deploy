@@ -9,7 +9,7 @@ import MNN.numpy as np
 class MNNPredictor:
     def __init__(self, enc_path, dec_path, thread, precision, backend):
         rt = MNN.nn.create_runtime_manager(({"numThread": thread, "precision": precision, "backend": backend},))
-        self.enc = MNN.nn.load_module_from_file(enc_path, [], [], runtime_manager=rt)
+        self.enc = MNN.nn.load_module_from_file(enc_path, [], [], runtime_manager=rt, shape_mutable=False)
         self.dec = MNN.nn.load_module_from_file(dec_path, [], [], runtime_manager=rt)
 
     def set_image(self, image_path, imgsz):
